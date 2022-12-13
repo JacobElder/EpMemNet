@@ -577,6 +577,7 @@ fullShort <- fullShort %>% inner_join(indDiffs, by="subID")
 # Natural Language Processing
 
 ```{r}
+library(vader)
 vo <- vader_df(fullLong$memory)
 fullLong <- cbind(fullLong, vad_pos = vo$pos, vad_neg = vo$neg, vad_comp = vo$compound)
 

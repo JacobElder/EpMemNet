@@ -27,10 +27,40 @@ fullLong$subID <- as.numeric(fullLong$subID)
 fullData <- fullLong %>% full_join(fullShort, by = c("subID"))
 ```
 
+# Wordcloud
+
+```{r}
+#Create a vector containing only the text
+text <- as.vector(fullData$memory)
+# Create a corpus  
+docs <- Corpus(VectorSource(text))
+docs <- docs %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+docs <- tm_map(docs, content_transformer(tolower))
+docs <- tm_map(docs, removeWords, stopwords("english"))
+docs <- tm_map(docs, removeWords, c("the","and"))
+
+dtm <- TermDocumentMatrix(docs) 
+matrix <- as.matrix(dtm) 
+words <- sort(rowSums(matrix),decreasing=TRUE) 
+df <- data.frame(word = names(words),freq=words)
+
+wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+
 # H1: People will evaluate more positively, less negatively (i.e., more favorably) on memories with more downstram dependents.
 
 ```{r}
 m<-glmer(outdegree ~  Val_1 * Val_2 + ( Val_1 + Val_2 | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-lmer(Val_1 ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(Val_2 ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
 summary(m)
 ```
 
@@ -81,6 +111,10 @@ summary(m)
 m<-lmer(IO ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
 summary(m)
 
+m<-lmer(IO ~  outdegree * indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+ggpredict(m, terms = c("Val_1","Val_2")) %>% plot()
+
 m<-lmer(IO ~  strength + ( strength | subID), data=fullData)
 summary(m)
 ```
@@ -113,6 +147,51 @@ summary(m)
 m<-lmer(Rep ~  strength + ( strength | subID), data=fullData)
 summary(m)
 ```
+
+# Exploratory Analyses
+
+## Sentiment of memory will be associated with dependencies
+
+```{r}
+m<-lmer(vad_comp.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_comp.x ~  strength + ( strength | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_pos.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_pos.x ~  strength + ( strength | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_neg.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_neg.x ~  strength + ( strength | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer(vad_pos.x ~  indegree*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_comp.x ~  strength + ( strength | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_pos.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_pos.x ~  strength + ( strength | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_neg.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(vad_neg.x ~  strength + ( strength | subID), data=fullData)
+summary(m)
+```
+
 
 
 
