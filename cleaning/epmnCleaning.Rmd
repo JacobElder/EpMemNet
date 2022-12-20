@@ -231,13 +231,37 @@ computeNeighbors <- function(graph, label, variable, type = "all"){
   return(neighAve)
 }
 computeNeighbors <- compiler::cmpfun(computeNeighbors)
+
+modularityWT <- function(g){
+  wtc <- cluster_walktrap(g)
+  modularity(g, membership(wtc))
+}
+
+# Compactness/Breadth: Lower values are more compact, shorter distances in network
+Compactness <- function(g) {
+        gra.geo <- distances(g) ## get geodesics
+        gra.rdist <- 1/gra.geo  ## get reciprocal of geodesics
+        diag(gra.rdist) <- NA   ## assign NA to diagonal
+        gra.rdist[gra.rdist == Inf] <- 0 ## replace infinity with 0
+          # Compactness = mean of reciprocal distances
+        comp.igph <- mean(gra.rdist, na.rm=TRUE) 
+        return(comp.igph)
+        }
+```
+
+```{r}
+# transpose test
+test <- rbind(c(0,1,0,1),c(0,0,1,0),c(0,0,0,1),c(0,0,1,0))
+test
+t(test)
 ```
 
 
-```{r}
-fullLong <- matrix(nrow=0,ncol=62)
 
-fullShort <- matrix(nrow=0,ncol=34)
+```{r}
+fullLong <- matrix(nrow=0,ncol=74)
+
+fullShort <- matrix(nrow=0,ncol=60)
 
 unique(rawDf$subID)
 
@@ -254,6 +278,9 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
     subNetUW <- get(paste0("subIGraph.",subID))
     subNetW <- get(paste0("subIGraphW.",subID))
     numMems <- sum(!is.na(memMat[memMat$subID==subID,2:31]))
+    
+    tsubNetW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetW))))
+    tsubNetUW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetUW))))
     
     #lapply(colnames(rawDf)[which(colnames(rawDf)=="M1_IM"):(which(colnames(rawDf)=="M1_IM")+26)], function(x) as.numeric(rawDf[rawDf$subID==subID, x]))
 # c("M1_IM", "M1_IO", "M1_Val_1", "M1_Val_2", "M1_PANAS_1", "M1_PANAS_2", 
@@ -336,6 +363,18 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
           degree(subNetUW,mode="out"),
           degree(subNetUW,mode="in"),
           strength(subNetW),
+          strength(subNetW, mode="out"),
+          strength(subNetW, mode="in"),
+          eigen_centrality(subNetUW)$vector,
+          eigen_centrality(subNetW)$vector,
+          hub_score(subNetUW)$vector,
+          hub_score(subNetW)$vector,
+          page_rank(subNetUW)$vector,
+          page_rank(subNetW)$vector,
+          page_rank(tsubNetUW)$vector,
+          page_rank(tsubNetW)$vector,
+          authority_score(subNetUW)$vector,
+          authority_score(subNetW)$vector,
           IM,
           IO,
           Val_1,
@@ -350,8 +389,8 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
           PANAS_8,
           PANAS_9,
           PANAS_10,
-          rowMeans(cbind(PANAS_1,PANAS_2,PANAS_3,PANAS_4,PANAS_5),na.rm=T),
-          rowMeans(cbind(PANAS_6,PANAS_7,PANAS_8,PANAS_9,PANAS_10),na.rm=T),
+          PANAS_P = rowMeans(cbind(PANAS_1,PANAS_2,PANAS_3,PANAS_4,PANAS_5),na.rm=T),
+          PANAS_N = rowMeans(cbind(PANAS_6,PANAS_7,PANAS_8,PANAS_9,PANAS_10),na.rm=T),
           Fund,
           Clear,
           Rep,
@@ -421,7 +460,46 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
     sumStre <- sum(strength(subNetW))
     # Similarity mean
     idSimGlob <- (similarity(subNetW, method = "dice"))%>% .[lower.tri(.)] %>% mean()
-    # Ave strength
+    # Reciprocity
+    recip <- reciprocity(subNetW)
+    # Diameter
+    diam <- diameter(subNetW)
+    # Average Path Length (Unweighted)
+    apl <- average.path.length(subNetUW)
+    # Average Path Length (weighted)
+    aplW <- average.path.length(subNetW)
+    # Modularity (Unweighted)
+    modular <- modularityWT(subNetUW)
+    # Modularity (Weighted)
+    modularW <- modularityWT(subNetW)
+    # Compactness (Unweighted)
+    compact <- Compactness(subNetUW)
+    # Compactness (Weighted)
+    compactW <- Compactness(subNetW)
+    # Cohesion (Unweighted)
+    cohes <- cohesion(subNetUW)
+    # Cohesion (Weighted)
+    cohesW <- cohesion(subNetW)
+    # Centralization
+    centrDeg <- centr_degree((subNetUW))$centralization 
+    centrBet <- centr_betw((subNetUW))$centralization
+    centrClo <- centr_clo((subNetUW))$centralization
+    centrEig <- centr_eigen((subNetUW))$centralization
+    # Centralization (Weighted)
+    centrDegW <- centr_degree((subNetW))$centralization 
+    centrBetW <- centr_betw((subNetW))$centralization
+    centrCloW <- centr_clo((subNetW))$centralization
+    centrEigW <- centr_eigen((subNetW))$centralization
+    # Dominance/Variability
+    sdDeg <- sd(degree(subNetUW))      
+    sdBet <- sd(betweenness(subNetUW))
+    sdClo <- sd(closeness(subNetUW))
+    sdEig <- sd(evcent(subNetUW)$vector)
+    # Dominance/Variability (Weighted)
+    sdDegW <- sd(degree(subNetW))      
+    sdBetW <- sd(betweenness(subNetW))
+    sdCloW <- sd(closeness(subNetW))
+    sdEigW <- sd(evcent(subNetW)$vector)
     
     variables <- c("IM", "IO", "Val_1", "Val_2", "PANAS_1", "PANAS_2", "PANAS_3", 
 "PANAS_4", "PANAS_5", "PANAS_6", "PANAS_7", "PANAS_8", "PANAS_9", 
@@ -437,26 +515,82 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
     )
     names(homophs) <- paste0(variables,"_homoph")
     
-    subShort <- c(subID,idEdgT,density,aveDist,idTrans,globEff, numMems, meanStre, sumStre, idSimGlob, homophs)
+    subShort <- c(subID,idEdgT,density,aveDist,idTrans,globEff, numMems, meanStre, sumStre, idSimGlob, recip, diam, apl, aplW, modular, modularW, compact, compactW, cohes, cohesW, centrDeg, centrBet, centrClo, centrEig, centrDegW, centrBetW, centrCloW, centrEigW, sdDeg, sdBet, sdClo, sdEig,  sdDegW, sdBetW, sdCloW, sdEigW, homophs)
     
     fullLong <- rbind(fullLong, subLong)
     fullShort <- rbind(fullShort, subShort)
   }
 
 fullLong <- as.data.frame(fullLong)
-begNames <- c("subID","memory","memCode","degree", "outdegree", "indegree", "strength")
+begNames <- c("subID","memory","memCode","degree", "outdegree", "indegree", "strength","strengthOut","strengthIn","eigen","eigenW","hub","hubW","page","pageW","pageOut","pageOutW","auth","authW")
 colnames(fullLong)[1:length(begNames)] <- begNames
 
 fullLong[4:ncol(fullLong)] <- apply(fullLong[4:ncol(fullLong)], 2, as.numeric)
 
 
-begNames <- c("subID","edgeTot","dense","aveDist","idTrans","globEff","numID","meanStre","sumStre","idSimGlob",paste0(variables,"_Homoph"))
+
+begNames <- c("subID","edgeTot","dense","aveDist","idTrans","globEff","numID",
+              "meanStre","sumStre","idSimGlob","recip","diam","apl","aplW",
+              "modular","modularW","compact","compactW","cohes","cohesW","centrDeg",
+              "centrBet","centrClo","centEig","centrDegW","centrBetW","centrCloW",
+              "centrEigW","sdDeg","sdBet","sdClo","sdEig","sdDegW","sdBetW","sdCloW","sdEigW",
+              paste0(variables,"_Homoph"))
 colnames(fullShort)[1:length(begNames)] <- begNames
 fullShort <- as.data.frame(fullShort)
+
+#fullLong <- fullLong %>% rename("PANAS_P" = "V32", "PANAS_N" = "V33")
+```
+# Convert Length to a single number
+
+```{r}
+convertLength <- function(Year, Month, Day){
+  Y <- (Year * 365) # Year to days
+  M <- (Month * 30.5) # Months to days
+  if(is.na(Y)){
+    Y<-0
+  }
+  if(is.na(M)){
+    M<-0
+  }
+  if(is.na(Day)){
+    Day<-0
+  }
+  Y + M + Day
+}
+
+for(i in 1:nrow(fullLong)){
+  fullLong$length[i] <- convertLength(fullLong$Length_12[i], fullLong$Length_13[i], fullLong$Length_14[i])
+}
+fullLong$length[fullLong$length > (365*65)] <- NA # Remove outliers
+```
+
+# Principal component analysis
+
+```{r}
+cur<-fullLong[, c("Fund","Clear","Rep","Chan","Dist","Cert")]
+PCAall<- prcomp(na.omit(cur),
+             center = TRUE,
+            scale. = TRUE)
+#PCAall$x
+fullLong$PCA[!is.na(fullLong$Fund) & !is.na(fullLong$Clear) & !is.na(fullLong$Rep) & !is.na(fullLong$Chan) & !is.na(fullLong$Dist) & !is.na(fullLong$Cert)] <- PCAall$x[,1]
+
+cur<-fullLong[, c("Fund", "Rep","Chan")]
+PCAall<- prcomp(na.omit(cur),
+             center = TRUE,
+            scale. = TRUE)
+#PCAall$x
+fullLong$PCAimp[!is.na(fullLong$Fund) & !is.na(fullLong$Rep) & !is.na(fullLong$Chan)] <- PCAall$x[,1]
 ```
 
 
-# Individual Differences [STILL NEED TO DO]
+# Rename some variables
+
+```{r}
+fullLong <- fullLong %>% rename(positive = Val_1, negative = Val_2)
+```
+
+
+# Individual Differences
 
 # Need for Cognition
 
@@ -577,6 +711,21 @@ fullShort <- fullShort %>% inner_join(indDiffs, by="subID")
 # Natural Language Processing
 
 ```{r}
+# #Create a vector containing only the text
+# text <- as.vector(fullLong$memory)
+# # Create a corpus  
+# docs <- Corpus(VectorSource(text))
+# docs <- docs %>%
+#   tm_map(removeNumbers) %>%
+#   tm_map(removePunctuation) %>%
+#   tm_map(stripWhitespace)
+# docs <- tm_map(docs, content_transformer(tolower))
+# docs <- tm_map(docs, removeWords, stopwords("english"))
+# docs <- tm_map(docs, removeWords, c("the","and"))
+# 
+# memory <- fullLong %>%
+#   filter(!(memory %in% stopwords(source = "snowball")))
+
 library(vader)
 vo <- vader_df(fullLong$memory)
 fullLong <- cbind(fullLong, vad_pos = vo$pos, vad_neg = vo$neg, vad_comp = vo$compound)
@@ -586,9 +735,9 @@ fullLong$nwords <- str_count(fullLong$memory, "\\w+")
 
 fullShort <- fullLong %>%
   group_by(subID) %>%
-  summarise(vad_pos = mean(vad_pos, na.rm=T),
-            vad_neg = mean(vad_neg, na.rm=T),
-            vad_comp = mean(vad_comp, na.rm=T)) %>% full_join(fullShort, by = "subID")
+  summarise(vad_posAg = mean(vad_pos, na.rm=T),
+            vad_negAg = mean(vad_neg, na.rm=T),
+            vad_compAg = mean(vad_comp, na.rm=T)) %>% full_join(fullShort, by = "subID")
 ```
 
 

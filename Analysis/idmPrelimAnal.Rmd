@@ -1,13 +1,15 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
 
 ```{r}
 library(groundhog)
-pkgs <-  c("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer")
+pkgs <-  c("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych")
 groundhog.day <- '2022-07-25'
 groundhog.library(pkgs, groundhog.day)
 here::i_am("Analysis/idmPrelimAnal.Rmd")
@@ -25,6 +27,15 @@ fullLong <- arrow::read_parquet(here("Data", "longEpMNet.parquet"))
 fullShort <- arrow::read_parquet(here("Data","shortEpMNet.parquet"))
 fullLong$subID <- as.numeric(fullLong$subID)
 fullData <- fullLong %>% full_join(fullShort, by = c("subID"))
+```
+
+# Descriptives
+
+```{r}
+# How many people listed 0 connections?
+nrow(fullShort[which(fullShort$edgeTot==0),])
+
+#describe(fullLong$strength)
 ```
 
 # Wordcloud
@@ -47,49 +58,177 @@ matrix <- as.matrix(dtm)
 words <- sort(rowSums(matrix),decreasing=TRUE) 
 df <- data.frame(word = names(words),freq=words)
 
+set.seed(24)
 wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
 ```
 
+# Sanity Checks
+
+## Does time predict number of causes?
+
+Yes, the farther away in time, the more experiences something causes.
+
+```{r}
+m<-glmer(outdegree ~  scale(length) + numID + ( scale(length) | subID), data=fullData,family="poisson")
+summary(m)
+```
+
+## Does time predict causes of experience?
+
+Yes, the farther back in time, the fewer experiences cause something.
+
+```{r}
+m<-glmer(indegree ~  scale(length) + numID + ( scale(length) | subID), data=fullData,family="poisson")
+summary(m)
+```
 
 # H1: People will evaluate more positively, less negatively (i.e., more favorably) on memories with more downstram dependents.
 
+## Valence Self-Report
+
+More positive and negative, experience causes more experience
+
+More positive, experience is caused by more experiences
+
 ```{r}
-m<-glmer(outdegree ~  Val_1 * Val_2 + ( Val_1 + Val_2 | subID), data=fullData,family="poisson")
+m<-glmer(outdegree ~  scale(positive) + scale(negative) + numID + ( scale(positive) + scale(negative) | subID), data=fullData,family="poisson")
 summary(m)
 
-m<-lmer(Val_1 ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-glmer(indegree ~  scale(positive) + scale(negative) + numID + ( scale(positive) + scale(negative) | subID), data=fullData,family="poisson")
 summary(m)
 
-m<-lmer(Val_2 ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer(positive ~  outdegree + indegree + numID + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+
+m<-lmer(negative ~  outdegree + indegree + numID + ( outdegree + indegree | subID), data=fullData)
+summary(m)
+```
+
+## PANAS
+
+### Outdegree
+
+More positive and more negative, experience causes more experiences
+
+```{r}
+m<-glmer(outdegree ~  scale(PANAS_P) + scale(PANAS_N) + numID + ( scale(PANAS_P) + scale(PANAS_N) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_1) + numID + ( scale(PANAS_1) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_2) + numID + ( scale(PANAS_2) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_3) + numID + ( scale(PANAS_3) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_4) + numID + ( scale(PANAS_4) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_5) + numID + ( scale(PANAS_5) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_6) + numID + ( scale(PANAS_6) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_7) + numID + ( scale(PANAS_7) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_8) + numID + ( scale(PANAS_8) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_9) + numID + ( scale(PANAS_9) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(outdegree ~  scale(PANAS_10) + numID + ( scale(PANAS_10) | subID), data=fullData,family="poisson")
+summary(m)
+```
+
+### Indegree
+
+More positive, more experiences cause an experience
+
+```{r}
+m<-glmer(indegree ~  scale(PANAS_P) + scale(PANAS_N) + numID + ( scale(PANAS_P) + scale(PANAS_N) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_1) + numID + ( scale(PANAS_1) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_2) + numID + ( scale(PANAS_2) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_3) + numID + ( scale(PANAS_3) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_4) + numID + ( scale(PANAS_4) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_5) + numID + ( scale(PANAS_5) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_6) + numID + ( scale(PANAS_6) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_7) + numID + ( scale(PANAS_7) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_8) + numID + ( scale(PANAS_8) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_9) + numID + ( scale(PANAS_9) | subID), data=fullData,family="poisson")
+summary(m)
+
+m<-glmer(indegree ~  scale(PANAS_10) + numID + ( scale(PANAS_10) | subID), data=fullData,family="poisson")
 summary(m)
 ```
 
 # H2: People will be more certain in memories with more downstream dependents.
 
+Causing more experiences and being caused by more experiences is associated with greater certainty in experience, but causing is a stronger effect.
+
+Using strength/similarity is stronger effect.
+
 ```{r}
-m<-lmer(Cert ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer(scale(Cert) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Cert ~  strength + ( strength | subID), data=fullData)
+m<-lmer(scale(Cert) ~  scale(strengthIn) + scale(strengthOut) + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
 summary(m)
 ```
 
 # H3: Memories with more dependents will be more clearly defined and accessible.
 
+Experiences causing more experiences are more predictive of clarity than experiences caused by more experiences
+
 ```{r}
-m<-lmer(Clear ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(Clear) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Clear ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(Clear) ~  scale(strengthIn) + scale(strengthOut) + numID + scale(length) + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
 summary(m)
 ```
+
 # H5: Memories with more dependents will be more fundamental to how people see themselves, and if they were changed, would change the person.
 
+The number of an experiences of causes, but not what it is caused by, predict how fundamental an experience is.
+
 ```{r}
-m<-lmer(Fund ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(Fund) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Fund ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(Fund) ~  scale(strengthIn) + scale(strengthOut) + numID + scale(length) + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+summary(m)
+```
+
+## Important principal factor (Changed me, Fundamental, Representative)
+
+```{r}
+m<-lmer(scale(PCAimp) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+summary(m)
+
+m<-lmer(scale(PCAimp) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
@@ -97,668 +236,149 @@ summary(m)
 
 ## To Self
 
+Experiences that cause more experiences are perceived as important to self, but not experiences that are caused by more experiences.
+
 ```{r}
-m<-lmer(IM ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(IM) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(IM ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(IM) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
 ## To Others
 
+Experiences that cause more experiences are perceived as important to others, but not experiences that are caused by more experiences.
+
 ```{r}
-m<-lmer(IO ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(IO) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(IO ~  outdegree * indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-ggpredict(m, terms = c("Val_1","Val_2")) %>% plot()
-
-m<-lmer(IO ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(IO) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
-# H9: People’s self-report of retrospected emotions during an experience will be associated with how positively or negatively they perceive the experience.
+# More Important to Self than Others
+
+No evidence
 
 ```{r}
-m<-lmer(Often ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+fullData$ImpDiff <- (fullData$IM-fullData$IO)
+m<-lmer( scale(ImpDiff) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+summary(m)
+
+m<-lmer( scale(ImpDiff) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 ```
 
 # H11: People think more often about memories with more memories causing them.
 
-# The more memories that depend on a given memory, the more people believe "This memory changed me"
+Experiences with more causes and caused by more are reflected on more frequently. Perhaps some stronger effects for causing more.
 
 ```{r}
-m<-lmer(Chan ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(Often) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Chan ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(Often) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
-# The more memories that depend on a given memory, the more certain that people feel this experience is representative of who they are.
+# H12: The more memories that depend on a given memory, the more people believe "This memory changed me". Weaker effect for memories with many causes of it.
 
 ```{r}
-m<-lmer(Rep ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(Chan) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Rep ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(Chan) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+summary(m)
+```
+
+# H13: The more memories that depend on a given memory, the more certain that people feel this experience is representative of who they are.
+
+People feel experiences with more causes are more representative of self. Similar, but weaker, effect for experiences caused by more experiences.
+
+```{r}
+m<-lmer( scale(Rep) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+summary(m)
+
+m<-lmer( scale(Rep) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
 # Exploratory Analyses
 
-## Sentiment of memory will be associated with dependencies
+## Sentiment of memory description will be associated with dependencies
+
+### Combined
+
+Experiences caused by more experiences have more qualitative positive sentiment.
 
 ```{r}
-m<-lmer(vad_comp.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(vad_comp) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(vad_comp.x ~  strength + ( strength | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_pos.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_pos.x ~  strength + ( strength | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_neg.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_neg.x ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(vad_comp) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
+### Positive
+
+Experiences with more experiences causing them are qualitatively more positive
+
 ```{r}
-m<-lmer(vad_pos.x ~  indegree*outdegree + ( 1 | subID), data=fullData)
+m<-lmer( scale(vad_pos) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(vad_comp.x ~  strength + ( strength | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_pos.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_pos.x ~  strength + ( strength | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_neg.x ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(vad_neg.x ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(vad_pos) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
+### Negative
 
-
+No negative effects
 
 ```{r}
-m<-lmer(IM ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(vad_neg) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(IM ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(vad_neg) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
-```{r}
-m<-lmer(IO ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
+## Number of words
 
-m<-lmer(IO ~  strength + ( strength | subID), data=fullData)
+No effect of causes or caused by on number of words
+
+```{r}
+m<-glmer(nwords ~  outdegree + indegree + numID + scale(length) + ( outdegree + indegree | subID), data=fullData, family="poisson")
 summary(m)
 ```
 
-```{r}
-m<-glmer(outdegree ~  Val_1*Val_2 + ( Val_1+Val_2 | subID), data=fullData, family="poisson")
-summary(m)
-ggpredict(m, terms = c("Val_1","Val_2")) %>% plot()
-```
+## Breadth
 
+Experiences with more causes are more broad.
 
 ```{r}
-m<-lmer(Val_1 ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(Breadth) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Val_1 ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(Breadth) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
+## Distinctness
+
+Experiences with more causes are perceived as more distinct/different.
+
 ```{r}
-m<-lmer(Val_2 ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(Dist) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
 summary(m)
 
-m<-lmer(Val_2 ~  strength + ( strength | subID), data=fullData)
+m<-lmer( scale(Dist) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
 summary(m)
 ```
 
-```{r}
-m<-lmer(Clear ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(Clear ~  strength + ( strength | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer(Breadth ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(Breadth ~  strength + ( strength | subID), data=fullData)
-summary(m)
-```
-
-
-
-
-```{r}
-m<-lmer(Dist ~  outdegree + indegree + ( outdegree + indegree | subID), data=fullData)
-summary(m)
-
-m<-lmer(Dist ~  strength + ( strength | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-glmer(outdegree ~  scale(SO_1) * scale(SO_2) + ( 1 | subID), data=fullData,family="poisson")
-summary(m)
-ggpredict(m, terms = c("SO_1","SO_2")) %>% plot()
-```
-
-```{r}
-m<-lmer( Fund ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-
-```{r}
-fullData$PminN <- (fullData$Val_1-fullData$Val_2)
-m<-lmer( PminN ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Fund ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Chan ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Cert ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( IM ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Clear ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Rep ~ SE*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ SAM*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ CESD*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ SOS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ DS*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ MAIA*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ DT_P*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ DT_M*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ NFC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ SCC*outdegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-
-## Indegree Cross-Level Interaction
-
-```{r}
-fullData$PminN <- (fullData$Val_1-fullData$Val_2)
-m<-lmer( PminN ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( PminN ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Fund ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Fund ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Chan ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-ggpredict(m, terms = c("CESD","indegree")) %>% plot()
-
-m<-lmer( Chan ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-ggpredict(m, terms = c("SOS","indegree")) %>% plot()
-
-m<-lmer( Chan ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Chan ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-ggpredict(m, terms = c("SCC","indegree")) %>% plot()
-```
-
-```{r}
-m<-lmer( Cert ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Cert ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( IM ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( IM ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Clear ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Clear ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-```{r}
-m<-lmer( Rep ~ SE*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ SAM*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ CESD*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ SOS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ DS*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ MAIA*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ DT_P*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ DT_M*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ NFC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-
-m<-lmer( Rep ~ SCC*indegree + ( 1 | subID), data=fullData)
-summary(m)
-```
-
-
-
-# Do people higher in self-esteem have more self than other focused memories?
+## Do people higher in self-esteem have more self than other focused memories?
 
 ```{r}
 fullData$SminO <- fullData$SO_1 - fullData$SO_2
@@ -767,6 +387,27 @@ m<-lmer( SminO ~ SE + ( 1 | subID), data=fullData)
 summary(m)
 ```
 
+## Page Rank, Hub and Changeability
+
+```{r}
+m<-lmer(Chan ~  page + ( page | subID), data=fullData)
+summary(m)
+
+m<-lmer(Chan ~  pageW + ( pageW | subID), data=fullData)
+summary(m)
+
+m<-lmer(Chan ~  pageOut + ( pageOut | subID), data=fullData)
+summary(m)
+
+m<-lmer(Chan ~  pageOutW + ( pageOutW | subID), data=fullData)
+summary(m)
+
+m<-lmer(Chan ~  hub + ( hub | subID), data=fullData)
+summary(m)
+
+m<-lmer(Chan ~  hubW + ( hubW | subID), data=fullData)
+summary(m)
+```
 
 ```{r}
 fullShort <- do.call(data.frame,                      # Replace Inf in data by NA
@@ -781,8 +422,8 @@ heatmaply_cor(round(corMat,3), Rowv=outphm[[1]], Colv=outphm[[2]], revC=TRUE, fo
 ```
 
 ```{r}
-fullShort %>% select(vad_comp, MAIA:NFC) %>% corToOne(., "vad_comp")
-fullShort %>% select(vad_comp, MAIA:NFC) %>% plotCorToOne(., "vad_comp")
+fullShort %>% select(vad_compAg, MAIA:NFC) %>% corToOne(., "vad_compAg")
+fullShort %>% select(vad_compAg, MAIA:NFC) %>% plotCorToOne(., "vad_compAg")
 ```
 
 
@@ -831,9 +472,42 @@ fullShort %>% select(Chan_Homoph, MAIA:NFC) %>% corToOne(., "Chan_Homoph")
 fullShort %>% select(Chan_Homoph, MAIA:NFC) %>% plotCorToOne(., "Chan_Homoph")
 ```
 
+```{r}
+fullShort %>% select(recip, MAIA:NFC) %>% corToOne(., "recip")
+fullShort %>% select(recip, MAIA:NFC) %>% plotCorToOne(., "recip")
+```
+
+# Cohesive
+
+```{r}
+fullShort %>% select(cohes, MAIA:NFC) %>% corToOne(., "cohes")
+fullShort %>% select(cohes, MAIA:NFC) %>% plotCorToOne(., "cohes")
+```
+
+```{r}
+fullShort %>% select(modular, MAIA:NFC) %>% corToOne(., "modular")
+fullShort %>% select(modular, MAIA:NFC) %>% plotCorToOne(., "modular")
+```
 
 
+# Reciprocity
 
+```{r}
+fullShort %>% select(recip, MAIA:NFC) %>% corToOne(., "recip")
+fullShort %>% select(recip, MAIA:NFC) %>% plotCorToOne(., "recip")
+```
+
+# Standard Deviation of Degrees
+
+```{r}
+fullShort %>% select(sdDeg, MAIA:NFC) %>% corToOne(., "sdDeg")
+fullShort %>% select(sdDeg, MAIA:NFC) %>% plotCorToOne(., "sdDeg")
+```
+
+```{r}
+fullShort %>% select(sdDegW, MAIA:NFC) %>% corToOne(., "sdDegW")
+fullShort %>% select(sdDegW, MAIA:NFC) %>% plotCorToOne(., "sdDegW")
+```
 
 
 

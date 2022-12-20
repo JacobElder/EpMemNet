@@ -1,0 +1,494 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+m<-lmer( Fund ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+
+```{r}
+fullData$PminN <- (fullData$positive-fullData$negative)
+m<-lmer( PminN ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Fund ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Chan ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Cert ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( IM ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Clear ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Rep ~ SE*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ SAM*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ CESD*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ SOS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ DS*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ MAIA*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ DT_P*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ DT_M*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ NFC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ SCC*outdegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+
+## Indegree Cross-Level Interaction
+
+```{r}
+fullData$PminN <- (fullData$Val_1-fullData$Val_2)
+m<-lmer( PminN ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( PminN ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Fund ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Fund ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Chan ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+ggpredict(m, terms = c("CESD","indegree")) %>% plot()
+
+m<-lmer( Chan ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+ggpredict(m, terms = c("SOS","indegree")) %>% plot()
+
+m<-lmer( Chan ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Chan ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+ggpredict(m, terms = c("SCC","indegree")) %>% plot()
+```
+
+```{r}
+m<-lmer( Cert ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Cert ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( IM ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( IM ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Clear ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Clear ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
+```{r}
+m<-lmer( Rep ~ SE*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ SAM*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ CESD*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ SOS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ DS*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ MAIA*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ DT_P*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ DT_M*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ NFC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+
+m<-lmer( Rep ~ SCC*indegree + ( 1 | subID), data=fullData)
+summary(m)
+```
+
