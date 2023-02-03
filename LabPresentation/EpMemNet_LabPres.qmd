@@ -1,0 +1,1028 @@
+---
+title: "Transformative Experiences and Counterfactuals"
+format:
+  revealjs:
+    theme: blood
+    highlight-style: monokai
+    code-block-bg: "#272822"
+fontsize: .7em
+editor: visual
+width: 1360
+height: 800
+echo: true
+---
+
+```{css, include=FALSE}
+.title {
+  font-size: 5px;
+  font-style: italic;
+  font-family: Arial;
+  font-variant: small-caps;
+}
+```
+
+```{r, echo=FALSE, include=FALSE}
+library(groundhog)
+
+pkgs <-  c("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary")
+groundhog.day <- '2022-07-25'
+groundhog.library(pkgs, groundhog.day)
+here::i_am("Analysis/idmPrelimAnal.Rmd")
+
+# pal1 <-n colorRampPalette(brewer.pal(11,"BrBG"))(227)
+pal <- colorRampPalette(wes_palette("Zissou1", 5))(227)
+
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
+
+fullLong <- arrow::read_parquet(here("Data", "longEpMNet.parquet"))
+fullShort <- arrow::read_parquet(here("Data","shortEpMNet.parquet"))
+fullLong$subID <- as.numeric(fullLong$subID)
+fullSimDf <- arrow::read_parquet(here("Data", "simEpMNet.parquet"))
+fullData <- fullLong %>% full_join(fullShort, by = c("subID"))
+
+```
+
+# Should I become a vampire?
+
+# Should I move to a different country?
+
+# Should I get married?
+
+# Should I have a child?
+
+# Should I take this job?
+
+## Transformative Experiences
+
+-   Certain experiences we cannot know what experience will be like-- and it's consequences-- until we undergo the experience; an epistemic challenge
+
+-   But also, many new/unknown experiences are personally transformative; will change your life and what it is like to be you
+
+## Epistemic Transformation
+
+-   Experiencing color for the first time can't be fully anticipated until it has been experienced; can't learn it by being told, have to experience it
+
+-   Knowledge of what something is like and subjective point-of-view changes
+
+-   Understand things in new way, gain new information
+
+-   Depends on how much one already knows, and the experience involved
+
+-   Stories, testimony, and theories aren't enough to teach you what it is like
+
+## Personal Transformation
+
+-   Some experiences can change your point of view, and by extension, your personal preferences, and perhaps even change the kind of person that you are or at least take yourself to be.
+
+-   horrific physical attack, gaining a new sensory ability, having a traumatic accident, undergoing major surgery, winning an Olympic gold medal, participating in a revolution, having a religious conversion, having a child, experiencing the death of a parent, making a major scientific discovery, or experiencing the death of a child.
+
+## Two Forms of Transformation
+
+-   Can be epistemically transformative, giving you new information in virtue of your experience.
+-   Can be personally transformative, changing how you experience being who you are.
+-   Some experiences may be epistemically transformative while not being personally transformative, like tasting a durian for the first time. Some experiences may be personally transformative without being epistemically transformative.
+
+## Both Epistemic and Personally Transformative
+
+-   Having a transformative experience (both personal and epistemic) teaches you something new, something that you could not have known before having the experience, while also changing you as a person.
+-   Choices involving transformative experiences, that is, your transformative choices, allow you to causally form what it will be like to be you in your future.
+
+## Autobiographical Memory: Episodic and Semantic
+
+-   Endel Tulving distinguished between *episodic* and *semantic* memory (Tulving, 1983)
+
+-   **Episodic Memory:** mental representation of the self as the agent or patient of some action, or as the stimulus or experiencer of some state
+
+    -   *I gave a present to Lucy on her birthday* and *Lucy made me very happy yesterday*
+
+-   **Semantic Memory:** is more generic, context-free knowledge about the world. Doesn't necessarily have to be in self-reference.
+
+    -   *Apples are red, green, or yellow fruits* or *I am a member of the middle class*, *I am more than 6 feet tall*, and *I am a neurotic extravert*.
+
+## Associative Network Models of Memory
+
+![](https://www.acrwebsite.org/volumes/v09/09046f01.gif){alt="Models of Memory: Implications For Measuring Knowledge Structures | ACR"}
+
+------------------------------------------------------------------------
+
+![](https://oxfordre.com/politics/doc/10.1093/acrefore/9780190228637.001.0001/acrefore-9780190228637-e-956-graphic-003-full.gif){alt="Associative Memory and Political Decision Making | Oxford Research  Encyclopedia of Politics"}
+
+------------------------------------------------------------------------
+
+![](https://www.researchgate.net/publication/28673820/figure/fig4/AS:669670675869717@1536673339737/Figure-One-Associative-network-example-The-intersection-between-the-networks-of-the.png){alt="Figure One. Associative network example. The intersection between the... |  Download Scientific Diagram"}
+
+------------------------------------------------------------------------
+
+![](images/Picture1.png)
+
+## Episodic Memories as a Causal Structure
+
+-   Associativist models assume undirected relation
+
+-   Also, to my knowledge, associativist models of self as memory have been primarily theoretical/verbal
+
+-   Present works attempts to formally model episodic memories as causal/directed
+
+-   Further, attempts to provide link between causal structure and "transformation"
+
+# Hypotheses
+
+## Network Hypotheses
+
+1.  H1: People will evaluate more positively, less negatively (i.e., more favorably) on memories with more downstram dependents.
+
+2.  H2: People will be more certain in memories with more downstream dependents.
+
+3.  H3: Memories with more dependents will be more clearly defined and accessible.
+
+4.  H4: Memories with more dependents will be farther back in time.
+
+------------------------------------------------------------------------
+
+5.  H5: Memories with more dependents will be more fundamental to how people see themselves, and if they were changed, would change the person.
+
+6.  H6: Memories with more dependents will be more important to the person.
+
+7.  H7: Time will be associated with the number of implications, such that experiences farther back in time will have caused more other experiences.
+
+8.  H8: How broad/specific an experience is may be associated with some perceptions or moderate various associations-- One example may be that broader memories will have more implications.
+
+------------------------------------------------------------------------
+
+9.  H9: People's self-report of retrospected emotions during an experience will be associated with how positively or negatively they perceive the experience.
+
+10. H10: Memories with lower network constraint will be more differentiated. (pretty exploratory)
+
+11. H11: People think more often about memories with more memories causing them
+
+# Method
+
+------------------------------------------------------------------------
+
+-   Participants indicate up to 30 episodic experiences/personal memories
+
+    ![](images/Screen%20Shot%202023-01-27%20at%2010.23.58%20PM.png)
+
+------------------------------------------------------------------------
+
+![](images/Screen%20Shot%202023-01-27%20at%2010.25.35%20PM.png)
+
+------------------------------------------------------------------------
+
+![](images/Screen%20Shot%202023-01-27%20at%2010.29.31%20PM.png)
+
+## Self-Reported Measures
+
+-   This experience is important to me.
+-   The experience is important to others.
+-   How do you feel about this experience? 0-100 \[Positive/Negative\]
+-   During this experience, I felt... \[PANAS\]
+
+## Self-Reported Measures
+
+-   This experience is clearly-defined and easy to recall in my memory.
+-   This experience is representative of who I am.
+-   If I did not have this experience, I would be a fundamentally different person.
+-   This experience changed me.
+
+## Self-Reported Measures
+
+-   This experience is distinct and different from my other memories.
+-   How certain do you feel about the details of this experience?
+-   How often do you think about this experience?
+-   How specific or broad was this experience?
+
+## Self-Reported Measures
+
+-   To what extent does this experience involve yourself or others? 0-100 \[Self/Others\]
+-   How long ago was this experience?
+
+## Individual Differences
+
+-   Self-Esteem
+-   Self-Concept Clarity
+-   Need for Cognition
+-   Dialectical Self
+-   Depression
+
+## Individual Differences
+
+-   Interoception
+-   Sense of Self
+-   Self-Ambivalence
+-   Dark Triad
+
+# Results
+
+## Wordcloud of Frequently Used Words
+
+```{r, echo = FALSE}
+# Wordcloud
+#Create a vector containing only the text
+text <- as.vector(fullData$memory)
+# Create a corpus  
+docs <- Corpus(VectorSource(text))
+docs <- docs %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+docs <- tm_map(docs, content_transformer(tolower))
+docs <- tm_map(docs, removeWords, stopwords("english"))
+docs <- tm_map(docs, removeWords, c("the","and"))
+
+dtm <- TermDocumentMatrix(docs) 
+matrix <- as.matrix(dtm) 
+words <- sort(rowSums(matrix),decreasing=TRUE) 
+df <- data.frame(word = names(words),freq=words)
+
+set.seed(24)
+wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+## Table of Experiences
+
+```{r, echo=F}
+# as.tibble(fullLong$memory) %>% gt() %>% as_raw_html() %>%
+#   tab_options(
+#     container.width = pct(85),
+#     container.overflow.x = T,
+#     container.overflow.y = T
+#   )
+
+as.tibble(fullLong$memory) %>% 
+  kable %>%
+  kable_styling("striped", full_width = F) %>% 
+ scroll_box(width = "800px", height = "6000px")
+```
+
+# Examples
+
+![](images/60260_net.png)
+
+------------------------------------------------------------------------
+
+![](images/60571_net.png)
+
+------------------------------------------------------------------------
+
+![](images/60572_net.png)
+
+------------------------------------------------------------------------
+
+![](images/60928_net.png)
+
+------------------------------------------------------------------------
+
+![](images/60950_net.png)
+
+------------------------------------------------------------------------
+
+![](images/61024_net.png)
+
+------------------------------------------------------------------------
+
+![](images/61059_net.png)
+
+------------------------------------------------------------------------
+
+![](images/62097_net.png)
+
+------------------------------------------------------------------------
+
+![](images/62002_net.png)
+
+------------------------------------------------------------------------
+
+![](images/61639_net.png)
+
+------------------------------------------------------------------------
+
+![](images/61605_net.png)
+
+# Descriptives
+
+## Descriptives for Outward Implications
+
+```{r, echo = F}
+psych::describe(fullData$outdegree)
+```
+
+## Descriptives for Inward Causes
+
+```{r, echo=F}
+psych::describe(fullData$indegree)
+```
+
+## Descriptives for Number of Words
+
+```{r, echo=F}
+psych::describe(fullData$nwords)
+```
+
+# Main Effects
+
+## Number of Inward Causes Predict Positivity
+
+```{r, echo=FALSE}
+m<-lmer(positive ~  outdegree + indegree + numID + scale(length) + ( outdegree + indegree | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( positive ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("indegree", "subID [sample = 200]"), type = "re")
+mef <- ggpredict(m, terms = c("indegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("X") + ylab("Y") + geom_line(alpha=.001) + ylim(0,100)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Inward Causes") + ylab("Self-Reported Positivity")
+
+# plotOUTPE<-ggplot(mer, aes(x, predicted)) +  geom_line(aes(color=group)) + scale_color_manual(values=pal) + theme(legend.position = "none") + theme(axis.text=element_text(size=12),
+#         axis.title=element_text(size=12,face="bold")) + theme(legend.text = element_text(size=12)) + theme(panel.border = element_rect(colour = "black", fill = NA, size =1)) + theme(legend.title = element_blank()) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+# panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+#   xlab("X") + ylab("Y")
+# plotOUTPE
+p3 <- (p1+p2)
+p3
+```
+
+------------------------------------------------------------------------
+
+## No Effect for Negativity
+
+```{r, echo=FALSE}
+m<-lmer(negative ~  outdegree + indegree + numID + scale(length) + ( outdegree + indegree | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## VADER Classified Positive Sentiment
+
+```{r, echo=FALSE}
+as.tibble(fullData$memory[order(-fullData$vad_pos)]) %>% 
+  kable %>%
+  kable_styling("striped", full_width = F) %>% 
+ scroll_box(width = "800px", height = "6000px")
+```
+
+## VADER Classified Negative Sentiment
+
+```{r, echo=FALSE}
+as.tibble(fullData$memory[order(-fullData$vad_neg)]) %>% 
+  kable %>%
+  kable_styling("striped", full_width = F) %>% 
+ scroll_box(width = "800px", height = "6000px")
+```
+
+## Effects Replicate for Positivity of Text
+
+```{r, echo=F}
+m<-lmer( scale(vad_pos) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+# broom.mixed::tidy(m) %>% kbl() %>%
+#   kable_paper("hover", full_width = T, fixed_thead = T, font_size = 14)
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( vad_pos ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("indegree", "subID [ sample = 164 ]"), type = "re")
+mef <- ggpredict(m, terms = c("indegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Text Positivity") + geom_line(alpha=.001) #+ ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Text Positivity")
+print(p1+p2)
+```
+
+## Strength of Inward Causes Predicts Positivity of Text
+
+```{r, echo=F}
+m<-lmer( scale(vad_pos) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Number of Outward Implications Predict Certainty
+
+```{r, echo=F}
+m<-lmer(scale(Cert) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Cert ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID [sample = 150]"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Certainty") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Certainty")
+print(p1+p2)
+```
+
+## Strength of Outward Implications Predicts Certainty
+
+```{r, echo=F}
+m<-lmer(scale(Cert) ~  scale(strengthIn) + scale(strengthOut) + numID + scale(length) + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Outward Implications More Clearly Defined
+
+```{r, echo=F}
+m<-lmer( scale(Clear) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Clear ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID [sample = 200]"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Clarity") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Clarity")
+print(p1+p2)
+```
+
+------------------------------------------------------------------------
+
+### Moderated by Self-Concept Clarity
+
+At higher levels of self-concept clarity, outward implications matter more for clarity of memory
+
+```{r, echo=F}
+m<-lmer( scale(Clear) ~  scale(outdegree)*SCC + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("SCC", "outdegree")) %>% plot()
+```
+
+## Stronger Outward Implications More Clearly Defined
+
+```{r, echo=F}
+m<-lmer( scale(Clear) ~  scale(strengthIn) + scale(strengthOut) + numID + scale(length) + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Outward Implications are More 'Fundamental'
+
+```{r, echo=F}
+m<-lmer( scale(Fund) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Fund ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID [sample = 200]"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Fundamentality") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Fundamentality") #+ ylim(1,7)
+print(p1+p2)
+```
+
+## Stronger Outward Implications/Inward Causes are More Fundamental
+
+```{r, echo=F}
+m<-lmer( scale(Fund) ~  scale(strengthIn) + scale(strengthOut) + numID + scale(length) + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+## Asymmetries in Importance to Self and Others...
+
+Memories with More Causes and Implications are Perceived as More Important to Self
+
+... whereas memories only with More Implications are Perceived as More Important to Others
+
+## More Outward Implications are Perceived as Changing Person
+
+```{r, echo=F}
+m<-lmer( scale(Chan) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Chan ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID [sample = 200]"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Transformativeness") + geom_line(alpha=.001) #+ ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Transformativeness") #+ ylim(1,7)
+print(p1+p2)
+```
+
+## Stronger Outward Implications are Perceived as Changing Person
+
+```{r, echo=F}
+m<-lmer( scale(Chan) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+## More Outward Implications are More Broad
+
+Supports a taxonomical/hierarchical structure?
+
+```{r, echo=F}
+m<-lmer( scale(Breadth) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Breadth ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID [sample = 200]"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Specific <--> Broad") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Specific <--> Broad")
+print(p1+p2)
+```
+
+## Stronger Outward Implications are More Broad
+
+```{r, echo=FALSE}
+m<-lmer( scale(Breadth) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Outward Implications Predicts More Specific Neighbors
+
+Further support of hierarchical structure?
+
+```{r, echo=F}
+m<-lmer( scale(Breadth_neighs) ~  outdegree + indegree + numID + scale(length) + ( outdegree + indegree | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Outward Implications are More Distinct
+
+```{r, echo=F}
+m<-lmer( scale(Dist) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Dist ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID [sample = 200]"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Distinctness") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Distinctness")
+print(p1+p2)
+```
+
+## Stronger Outward Implications are More Distinct
+
+```{r, echo=F}
+m<-lmer( scale(Dist) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+# Similarities
+
+Memories that share other memories in common (as implications or causes) are reflected upon similarly...
+
+## Relational Similarity Predicts Similarity in Positivity
+
+```{r,echo=F}
+m<-lmer( scale(positive) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Negativity
+
+```{r,echo=F}
+m<-lmer( scale(negative) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Changeability
+
+```{r,echo=F}
+m<-lmer( scale(Clear) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Clarity
+
+```{r,echo=F}
+m<-lmer( scale(Clear) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Certainty
+
+```{r,echo=F}
+m<-lmer( scale(Cert) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Breadth
+
+```{r,echo=F}
+m<-lmer( scale(Breadth) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+# Individual Differences Main Effects
+
+## Self-Esteem
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SE) + numID + scale(length) + ( scale(SE) | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SE) + numID + scale(length) + ( scale(SE) | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### Small Effect of Self-Esteem on Strength
+
+More self-esteem, less similarity among memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SE) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Self-Concept Clarity
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SCC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SCC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SCC) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Depression
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(CESD) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(CESD) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(CESD) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Need for Cognition
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(NFC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### More need for cognition, more inward causes
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(NFC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### More need for cognition, more similarity to other memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(NFC) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## No Effects of Self-Ambivalence
+
+------------------------------------------------------------------------
+
+### No effect on outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SAM) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SAM) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SAM) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effect of Sense of Self on Inward Causes
+
+------------------------------------------------------------------------
+
+### No effect on outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SOS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+
+```
+
+------------------------------------------------------------------------
+
+## Lower sense of self, more inward causes
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SOS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### Lower sense of self, more similarity to other memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SOS) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effect of Psychopathy on Outward Implications
+
+------------------------------------------------------------------------
+
+## Lower psychopathy, more outward implications
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(DT_P) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(DT_P) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(DT_P) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effects of Dialectical Self
+
+------------------------------------------------------------------------
+
+### No effect of outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(DS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### Lower dialectical self-views, more inward causes
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(DS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### More dialectical self-views, less similarity to other memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(DS) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effect of Interoceptive Awareness
+
+------------------------------------------------------------------------
+
+### No effect on outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(MAIA) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(MAIA) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on Strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(MAIA) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+# Individual Differences Correlations
+
+------------------------------------------------------------------------
+
+```{r, echo=F,include=F}
+fullShort <- do.call(data.frame,                      # Replace Inf in data by NA
+                   lapply(fullShort,
+                          function(x) replace(x, is.infinite(x), NA)))
+corMat <- fullShort %>% select(edgeTot:NFC) %>% cor(fullShort,use="pairwise.complete.obs")
+
+outphm <- pheatmap(corMat, fontsize_row = 6, fontsize_col = 6, angle_col = 45, angle_row =45, width=100, height = 200 )
+
+```
+
+```{r, echo=F}
+heatmaply_cor(round(corMat,3.5), Rowv=outphm[[1]], Colv=outphm[[2]], revC=TRUE, fontsize_row = 2.5, fontsize_col = 3, angle_col = 45, angle_row =45,  limits = c(-1, 1), colors = colorRampPalette(rev(brewer.pal(n = 7, name =
+  "RdYlBu")))(100) )
+```
+
+# Summary
+
+## Recap
+
+-   Asymmetric stronger effects of implications relative to inward causes
+
+-   Outward implications predicts how fundamental or important to change an experience was, how clearly defined/certain in memory one is, and how representative the experience is...
+
+-   Inward causes predict positivity (across self-report and positivity of text used) but not negativity
+
+-   Superordinance: More outward implications, more broad... Like foundation of a building, the most causal are the most broadward
+
+-   Structurally similar memories share similar beliefs/attitudes towards them
+
+## Potential Criticisms
+
+-   There's a lot of inward and outward effects, even if inward is weaker. Is it *really* directed?
+
+-   Are these causal relations meaningful, or do people just "click" the memories that mean a lot to them more often?
+
+-   Any others?
+
+## Pending Questions for Study 2
+
+-   How can we support this directed/causal representation of episodic memory?
+
+-   How can we modify/augment episodic memories?
+
+-   How can we support that more implications == more transformative?
+
+-   How can we support that if memory did not exist, it's consequences would not either (i.e., counterfactual reasoning)?
+
+# Next Steps
+
+## Tweaks/Rephrasings
+
+-   Remove questions to reduce time (Which?)
+
+-   For MTurk, fix episodic memories max at 15 rather than 30? Require 15 to keep constant?
+
+-   Pivot towards episodic memories/experiences person **chose** to have (per L.A. Paul framing)?
+
+-   Rephrase weighted network question to: How certain are you that if X did not occur, Y would not? Or how responsible?... Feels more concrete, in line with Gerstenberg et al. work on counterfactual reasoning/causal structure
+
+## New Questions
+
+-   How surprising or unexpected the experience was?
+
+-   Whether you knew what it was like to have this experience, prior to it having been experienced?
+
+-   Whether you anticipated the consequences it would have, prior to having the experience?
+
+-   To what extent were your preferences and values changed by this experience?
+
+-   To what do your values/preferences after this experienc differ from your values and preferences before undergoing this experience?
+
+-   Rank order the memories experiences that would be most disruptive to who you are if they did not exist:
+
+## The Simulation Heuristic
+
+-   "Assessments of causality. To test whether event A caused event B, we may undo A in our mind, and observe whether B still occurs in the simulation. Simulation can also be used to test whether A markedly increased the propensity of B, perhaps even made B inevitable. We suggest that a test of causality by simulation is involved in examples such as"you know very well that they would have quarrelled even if she had not mentioned his mother." - Kahneman & Tversky, 1981
+
+-   Biased towards downhill/subtractive change, reducing surprising antecedents
+
+## Additive, Subtractive, and Substitution Counteractuals
+
+-   A student fails a test...
+
+    -   **Uphill/Additive:** ... If only I had purchased study materials.
+
+    -   **Downhill/Subtractive:** ... If only I hadn't gone out drinking with me mates the previous night.
+
+    -   **Horizontal/Subsitution:** ... If only I had focused on the text instead of my lecture notes.
+
+## Counteractual Reasoning Task
+
+-   Gerstenberg et al., 2022 on sustaining causation (blocks causing other blocks to be supported) ask to predict which blocks would fall if the black one were removed (selection), how many of the blocks would fall (prediction), and how responsible the black block is for the red blocks staying on the table (responsibility).
+
+-   https://cicl-stanford.github.io/mental_jenga/interface/
+
+## Counterfactual Reasoning Task
+
+-   Introduce noise to estimate responsibility judgment
+
+-   What is noise for episodic memories though?
+
+## ![](images/Screen%20Shot%202023-01-30%20at%204.46.55%20PM.png){width="516"}
+
+## Counterfactual Reasoning Task
+
+-   In the current work on our trait network work, we more or less implement the "Selection" condition.
+
+-   Is there a way to implement "Prediction" and "Responsibility" conditions?
+
+    ![](images/Screen%20Shot%202023-01-30%20at%204.48.53%20PM.png)
+
+## Future Studies... if I had time :'(
+
+-   Some of strongest evidence for mental simulation models of counterfactual reasoning come from eye-tracking
+
+    -   People look at where B would have gone if it were not for A
+
+-   Collect data, generate networks, implement perturbations to network, and measure the extent to which participants predict instability

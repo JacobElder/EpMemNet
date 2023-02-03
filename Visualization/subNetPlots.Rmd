@@ -1,0 +1,133 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(igraph)
+library(GGally)
+library(ggplot2)
+load("/Volumes/Research Project/Episodic Memory Network/Study 1/workspace/idmWorkspace.RData")
+```
+
+```{r}
+Pattern1<-grep("subIGraph.",names(.GlobalEnv),value=TRUE)
+Pattern1_list<-do.call("list",mget(Pattern1))
+```
+
+
+
+```{r}
+dir.create("/Volumes/Research Project/Episodic Memory Network/Study 1/Plots/")
+uIds<-unique(fullLong$subID)
+for(i in uIds){
+  curGraph <- get(paste0("subIGraph.",as.character(i) ))
+  curMat <- get(paste0("subIMat.",as.character(i) ))
+  plot <- ggnet2(curGraph, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(curMat)), color = "red", fontface = "bold", size =2)
+  ggsave(paste0("/Volumes/Research Project/Episodic Memory Network/Study 1/Plots/",i,"_net.png"), units="in", dpi=400, height=6, width=9)
+}
+```
+
+
+```{r}
+
+ggnet2(subIGraph.61606, directed = TRUE,
+       arrow.size = 12, arrow.gap = 0.025) +
+  geom_text(aes(label = rownames(subIMat.61606)), color = "black", fontface = "bold", size =2)
+
+ggnet2(subIGraph.61606, size = "outdegree", color = "phono", mode = "kamadakawai", directed=T, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text(aes(label = rownames(subIMat.61606)), color = "black", fontface = "bold", size =2)
+
+
+
+ggnet2(subIGraph.61606, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.025, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61606)), color = "black", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.61637, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.025, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61637)), color = "black", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.61756, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.025, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61756)), color = "black", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.61845, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.025, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61845)), color = "black", fontface = "bold", size =2)
+```
+
+
+```{r}
+ggnet2(subIGraph.61979, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61979)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.60843, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.60843)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.62002, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.62002)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.62203, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.62203)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.60905, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.60905)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.61608, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61608)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.60867, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.60867)), color = "red", fontface = "bold", size =2)
+```
+
+```{r}
+ggnet2(subIGraph.61062, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61062)), color = "red", fontface = "bold", size =2)
+
+
+ggnet2(subIGraph.54857, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.54857)), color = "red", fontface = "bold", size =2)
+
+
+ggnet2(subIGraph.61784, size = "outdegree", color = "phono", mode = "fruchtermanreingold", directed=TRUE, arrow.size = 3.5, arrow.gap = 0.05, layout.exp = .65) + 
+      guides(color = "none", size = "none")  +
+  geom_text_repel(aes(label = rownames(subIMat.61784)), color = "red", fontface = "bold", size =2)
+```
+
+
+
+
+
+
+

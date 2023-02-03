@@ -21,6 +21,7 @@ rawDf <- data.table::fread("/Volumes/Research Project/Episodic Memory Network/St
 rawDf <- as.data.frame(rawDf)
 
 rawDf <- subset(rawDf, id != 47001)
+rawDf <- subset(rawDf, id != 60761)
 ```
 
 # Create functions
@@ -158,6 +159,9 @@ Dfs <- unique(rawDf$subID)
   # column names
   idSubs <- rawDf %>%
     select(contains("_Relations"))
+
+  # Subjects to remove based on network
+  removeSubs <- c()
   for(n in 1:nrow(rawDf)){
     i <- rawDf$subID[n]
     
@@ -217,8 +221,23 @@ Dfs <- unique(rawDf$subID)
     
     assign(paste0("subIMatW.",i),subMatW)
     assign(paste0("subIGraphW.",i),subGraphW)
+    
+    if(length(E(subGraph))==0 | length(V(subGraph)) < 4 ){
+      removeSubs <- c(removeSubs, i)
+      rm(list = c(paste0("subIGraph.",i)))
+      rm(list = c(paste0("subIGraphW.",i)))
+      rm(list = c(paste0("subIMat.",i)))
+      rm(list = c(paste0("subIMatW.",i)))
+    }
+    
   }
+  
 ```
+
+```{r}
+rawDf <-  rawDf[!(rawDf$subID %in% removeSubs),]
+```
+
 
 ```{r}
 computeNeighbors <- function(graph, label, variable, type = "all"){
@@ -249,13 +268,6 @@ Compactness <- function(g) {
         }
 ```
 
-```{r}
-# transpose test
-test <- rbind(c(0,1,0,1),c(0,0,1,0),c(0,0,0,1),c(0,0,1,0))
-test
-t(test)
-```
-
 
 
 ```{r}
@@ -263,7 +275,7 @@ fullLong <- matrix(nrow=0,ncol=74)
 
 fullShort <- matrix(nrow=0,ncol=60)
 
-unique(rawDf$subID)
+uIds <- unique(rawDf$subID)
 
 colnames(rawDf)[which(colnames(rawDf)=="M1_IM"):(which(colnames(rawDf)=="M1_IM")+28)]
 varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Proud", "Miserable", "Mad", "Afraid", "Scared", "Sad", "PANAS_P", "PANAS_N", "Clear", "Rep", "Funda", "Change", 
@@ -718,7 +730,7 @@ fullShort <- fullShort %>% inner_join(indDiffs, by="subID")
 # docs <- docs %>%
 #   tm_map(removeNumbers) %>%
 #   tm_map(removePunctuation) %>%
-#   tm_map(stripWhitespace)
+#   tm_map(stripWhi61976tespace)
 # docs <- tm_map(docs, content_transformer(tolower))
 # docs <- tm_map(docs, removeWords, stopwords("english"))
 # docs <- tm_map(docs, removeWords, c("the","and"))
@@ -741,10 +753,68 @@ fullShort <- fullLong %>%
 ```
 
 
+```{r}
+uIds <- unique(rawDf$subID)
+
+#fullSimDf <- matrix(ncol=6, nrow=8*length(uIds))
+fullSimDf <- data.frame()
+
+    dvars <- c("IM", "IO", "positive", "negative", paste0("PANAS_",1:10), "Clear", "Rep", "Chan", "Dist", "Cert", "Often", "Breadth", "SO_1", "SO_2")
+
+for(i in uIds){
+    #subDf <- rawFirst[rawFirst$id==i,]
+    subDf <- fullLong[fullLong$subID==i,]
+  
+    # mem graph
+    curGraph <- get(paste0("subIGraph.",i))
+    
+    # weighted mem graph
+    curGraphW <- get(paste0("subIGraphW.",i))
+    
+    sim=similarity.dice(curGraph)
+    simVect=sim[lower.tri(sim)==T]
+    # if(length(simVect)<28){
+    #   break
+    # }
+    
+    simW=similarity.dice(curGraphW)
+    simWVect=sim[lower.tri(simW)==T]
+    # if(length(simVectIT)<28){
+    #   break
+    # }
+    
+    dmat <- matrix(ncol=length(dvars),nrow=length(simVect))
+    iter <- 1
+    for(d in 1:length(dvars) ){
+    Vect <- as.vector(dist(subDf[dvars[d]]))
+    dmat[,d] <- Vect
+    iter <- iter + 1
+    # if(length(posVect)<28){
+    #   break
+    # }
+    }
+
+    
+    curSimDf <- cbind(subID = rep(i,length(simVect)), Sim = simVect, dmat)
+    
+    
+    # if(any(apply(curSimDf, 2, length)!=28)){
+    #   break
+    # }
+    
+    fullSimDf <- rbind(fullSimDf, curSimDf)
+    
+}
+colnames(fullSimDf) <- c("subID", "Sim", dvars)
+```
+
+
+
 
 ```{r}
 arrow::write_parquet(fullLong,"../Data/longEpMNet.parquet")
 arrow::write_parquet(fullShort,"../Data/shortEpMNet.parquet")
+arrow::write_parquet(fullSimDf,"../Data/simEpMNet.parquet")
 save.image("/Volumes/Research Project/Episodic Memory Network/Study 1/workspace/idmWorkspace.RData")
 ```
 

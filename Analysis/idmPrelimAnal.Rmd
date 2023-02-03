@@ -417,7 +417,7 @@ corMat <- fullShort %>% select(edgeTot:NFC) %>% cor(fullShort,use="pairwise.comp
 
 outphm <- pheatmap(corMat, fontsize_row = 6, fontsize_col = 6, angle_col = 45, angle_row =45, width=100, height = 200 )
 
-heatmaply_cor(round(corMat,3), Rowv=outphm[[1]], Colv=outphm[[2]], revC=TRUE, fontsize_row = 2.5, fontsize_col = 2.5, angle_col = 45, angle_row =45,  limits = c(-1, 1), colors = colorRampPalette(rev(brewer.pal(n = 7, name =
+heatmaply_cor(round(corMat,3.5), Rowv=outphm[[1]], Colv=outphm[[2]], revC=TRUE, fontsize_row = 2.5, fontsize_col = 3, angle_col = 45, angle_row =45,  limits = c(-1, 1), colors = colorRampPalette(rev(brewer.pal(n = 7, name =
   "RdYlBu")))(100) )
 ```
 
@@ -508,6 +508,7 @@ fullShort %>% select(sdDeg, MAIA:NFC) %>% plotCorToOne(., "sdDeg")
 fullShort %>% select(sdDegW, MAIA:NFC) %>% corToOne(., "sdDegW")
 fullShort %>% select(sdDegW, MAIA:NFC) %>% plotCorToOne(., "sdDegW")
 ```
+
 
 
 
