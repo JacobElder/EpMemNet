@@ -326,7 +326,7 @@ psych::describe(fullData$nwords)
 ## Number of Inward Causes Predict Positivity
 
 ```{r, echo=FALSE}
-m<-lmer(positive ~  outdegree + indegree + numID + scale(length) + ( outdegree + indegree | subID), data=fullData)
+m<-lmer( scale(positive) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( outdegree + indegree | subID), data=fullData)
 tbl_regression(m) %>% as_gt()
 ```
 
