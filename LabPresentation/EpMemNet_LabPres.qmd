@@ -2,6 +2,7 @@
 title: "Transformative Experiences and Counterfactuals"
 format:
   revealjs:
+    embed-resources: true
     theme: blood
     highlight-style: monokai
     code-block-bg: "#272822"
