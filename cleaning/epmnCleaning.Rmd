@@ -6,8 +6,9 @@ output: html_notebook
 ```{r}
 library(groundhog)
 pkgs <-  c("tidyverse","here", "igraph")
-groundhog.day <- '2022-07-25'
-groundhog.library(pkgs, groundhog.day)
+# groundhog.day <- '2023-03-02'
+# groundhog.library(pkgs, groundhog.day)
+pacman::p_load("tidyverse","here", "igraph")
 here::i_am("cleaning/epmnCleaning.Rmd")
 ```
 
@@ -89,7 +90,7 @@ if(any(colnames(rawDf)=="4M1_Relations")){
 }
 
 # Shorten Identity Nominations label
-rawDf <- rename_with(rawDf, ~ gsub("Identity Nominations", "IdNoms", .x, fixed = TRUE))
+rawDf <- dplyr::rename_with(rawDf, ~ gsub("Identity Nominations", "IdNoms", .x, fixed = TRUE))
 
 rawDf <- as_tibble(rawDf)
 ```
@@ -215,6 +216,13 @@ Dfs <- unique(rawDf$subID)
       # convert to graph
     subGraph <- graph.adjacency(subMat, mode="directed")
     subGraphW <- graph.adjacency(subMatW, weighted = T, mode="directed")
+    
+    # coerce to undirected
+    # subGraph.UD.C <- as.undirected(subGraph, mode="collapse")
+    # subGraph.UD.M <- as.undirected(subGraph, mode="mutual")
+    # subGraphW.UD.C <- as.undirected(subGraphW, mode="collapse")
+    # subGraphW.UD.M <- as.undirected(subGraphW, mode="mutual")
+    
     # label
     assign(paste0("subIMat.",i),subMat)
     assign(paste0("subIGraph.",i),subGraph)
@@ -222,12 +230,23 @@ Dfs <- unique(rawDf$subID)
     assign(paste0("subIMatW.",i),subMatW)
     assign(paste0("subIGraphW.",i),subGraphW)
     
+    # label undirected
+    # assign(paste0("subGraph.UD.C.",i),subGraph.UD.C)
+    # assign(paste0("subGraph.UD.M.",i),subGraph.UD.M)
+    # assign(paste0("subGraphW.UD.C.",i),subGraphW.UD.C)
+    # assign(paste0("subGraphW.UD.M.",i),subGraphW.UD.M)
+    
     if(length(E(subGraph))==0 | length(V(subGraph)) < 4 ){
       removeSubs <- c(removeSubs, i)
       rm(list = c(paste0("subIGraph.",i)))
       rm(list = c(paste0("subIGraphW.",i)))
       rm(list = c(paste0("subIMat.",i)))
       rm(list = c(paste0("subIMatW.",i)))
+      
+      # rm(list = c(paste0("subGraph.UD.C.",i)))
+      # rm(list = c(paste0("subGraph.UD.M.",i)))
+      # rm(list = c(paste0("subGraphW.UD.C.",i)))
+      # rm(list = c(paste0("subGraphW.UD.M.",i)))
     }
     
   }
@@ -271,7 +290,7 @@ Compactness <- function(g) {
 
 
 ```{r}
-fullLong <- matrix(nrow=0,ncol=74)
+fullLong <- matrix(nrow=0,ncol=78)
 
 fullShort <- matrix(nrow=0,ncol=60)
 
@@ -293,6 +312,11 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
     
     tsubNetW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetW))))
     tsubNetUW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetUW))))
+    
+    subNet.UD.C <- as.undirected(subNetUW, mode="collapse")
+    subNet.UD.M <- as.undirected(subNetUW, mode="mutual")
+    subNetW.UD.C <- as.undirected(subNetW, mode="collapse")
+    subNetW.UD.M <- as.undirected(subNetW, mode="mutual")
     
     #lapply(colnames(rawDf)[which(colnames(rawDf)=="M1_IM"):(which(colnames(rawDf)=="M1_IM")+26)], function(x) as.numeric(rawDf[rawDf$subID==subID, x]))
 # c("M1_IM", "M1_IO", "M1_Val_1", "M1_Val_2", "M1_PANAS_1", "M1_PANAS_2", 
@@ -387,6 +411,10 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
           page_rank(tsubNetW)$vector,
           authority_score(subNetUW)$vector,
           authority_score(subNetW)$vector,
+          degree(subNet.UD.C),
+          degree(subNet.UD.M),
+          strength(subNetW.UD.C),
+          strength(subNetW.UD.M),
           IM,
           IO,
           Val_1,
@@ -534,7 +562,7 @@ varnames <- c("IM", "IO", "Pos", "Neg", "Joy", "Cheer", "Happy", "Lively", "Prou
   }
 
 fullLong <- as.data.frame(fullLong)
-begNames <- c("subID","memory","memCode","degree", "outdegree", "indegree", "strength","strengthOut","strengthIn","eigen","eigenW","hub","hubW","page","pageW","pageOut","pageOutW","auth","authW")
+begNames <- c("subID","memory","memCode","degree", "outdegree", "indegree", "strength","strengthOut","strengthIn","eigen","eigenW","hub","hubW","page","pageW","pageOut","pageOutW","auth","authW","UD.C.Deg","UD.M.Deg","UD.C.Streng","UD.M.Streng")
 colnames(fullLong)[1:length(begNames)] <- begNames
 
 fullLong[4:ncol(fullLong)] <- apply(fullLong[4:ncol(fullLong)], 2, as.numeric)
