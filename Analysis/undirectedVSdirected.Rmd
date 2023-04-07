@@ -1,0 +1,146 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+
+```{r}
+library(groundhog)
+
+pkgs <-  c("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary")
+groundhog.day <- '2022-07-25'
+#groundhog.library(pkgs, groundhog.day)
+pacman::p_load("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary")
+here::i_am("Analysis/idmPrelimAnal.Rmd")
+
+fullLong <- arrow::read_parquet(here("Data", "longEpMNet.parquet"))
+fullShort <- arrow::read_parquet(here("Data","shortEpMNet.parquet"))
+fullLong$subID <- as.numeric(fullLong$subID)
+fullSimDf <- arrow::read_parquet(here("Data", "simEpMNet.parquet"))
+fullData <- fullLong %>% full_join(fullShort, by = c("subID"))
+fullData$subID <- as.factor(fullData$subID)
+
+trainFullIDs <- unique(fullData$subID)[1:250]
+testFullIDs <- setdiff(unique(fullData$subID), trainFullIDs)
+
+trainFull <- fullData[fullData$subID %in% trainFullIDs,]
+testFull <- fullData[fullData$subID %in% testFullIDs,]
+
+# pal1 <-n colorRampPalette(brewer.pal(11,"BrBG"))(227)
+pal <- colorRampPalette(wes_palette("Zissou1", 5))(length(unique(trainFull$subID)))
+
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/coefTest.R")
+```
+
+# Changed Me
+
+## Degrees
+
+Outdegree more strongly predicts changing-person than reciprocal undirected degree, but not as much as collapsed undirected degree.
+
+```{r}
+m1 <- lmer( scale(Chan) ~ scale(outdegree) + numID +  ( scale(outdegree) | subID), data=trainFull)
+summary(m1)
+
+m2 <- lmer( scale(Chan) ~ scale(UD.M.Deg) + numID +  ( scale(UD.M.Deg) | subID), data=trainFull)
+summary(m2)
+
+m3 <- lmer( scale(Chan) ~ scale(UD.C.Deg) + numID +  ( scale(UD.M.Deg) | subID), data=trainFull)
+summary(m3)
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m2)$coefficients[1], summary(m2)$coefficients[4])
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m3)$coefficients[1], summary(m3)$coefficients[4])
+```
+
+## Strength
+
+Outdegree weighted edge more strongly predicts changed-me than undirected strength of either type.
+
+```{r}
+m1 <- lmer( scale(Chan) ~ scale(strengthOut) + numID +  ( scale(strengthOut) | subID), data=trainFull)
+summary(m1)
+
+m2 <- lmer( scale(Chan) ~ scale(UD.M.Streng) + numID +  ( scale(UD.M.Streng) | subID), data=trainFull)
+summary(m2)
+
+m3 <- lmer( scale(Chan) ~ scale(UD.C.Streng) + numID +  ( scale(UD.C.Streng) | subID), data=trainFull)
+summary(m3)
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m2)$coefficients[1], summary(m2)$coefficients[4])
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m3)$coefficients[1], summary(m3)$coefficients[4])
+```
+# Fundamental
+
+## Degree
+
+```{r}
+m1 <- lmer( scale(Fund) ~ scale(outdegree) + numID +  ( scale(outdegree) | subID), data=trainFull)
+summary(m1)
+
+m2 <- lmer( scale(Fund) ~ scale(UD.M.Deg) + numID +  ( scale(UD.M.Deg) | subID), data=trainFull)
+summary(m2)
+
+m3 <- lmer( scale(Fund) ~ scale(UD.C.Deg) + numID +  ( scale(UD.M.Deg) | subID), data=trainFull)
+summary(m3)
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m2)$coefficients[1], summary(m2)$coefficients[4])
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m3)$coefficients[1], summary(m3)$coefficients[4])
+```
+
+## Strength
+
+```{r}
+m1 <- lmer( scale(Fund) ~ scale(strengthOut) + numID +  ( scale(strengthOut) | subID), data=trainFull)
+summary(m1)
+
+m2 <- lmer( scale(Fund) ~ scale(UD.M.Streng) + numID +  ( scale(UD.M.Streng) | subID), data=trainFull)
+summary(m2)
+
+m3 <- lmer( scale(Fund) ~ scale(UD.C.Streng) + numID +  ( scale(UD.C.Streng) | subID), data=trainFull)
+summary(m3)
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m2)$coefficients[1], summary(m2)$coefficients[4])
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m3)$coefficients[1], summary(m3)$coefficients[4])
+```
+# Breadth
+
+## Degrees
+
+```{r}
+m1 <- lmer( scale(Breadth) ~ scale(outdegree) + numID + ( scale(outdegree) | subID), data=trainFull)
+summary(m1)
+
+m2 <- lmer( scale(Breadth) ~ scale(UD.M.Deg) + numID +  ( scale(UD.M.Deg) | subID), data=trainFull)
+summary(m2)
+
+m3 <- lmer( scale(Breadth) ~ scale(UD.C.Deg) + numID +  ( scale(UD.M.Deg) | subID), data=trainFull)
+summary(m3)
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m2)$coefficients[1], summary(m2)$coefficients[4])
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m3)$coefficients[1], summary(m3)$coefficients[4])
+```
+## Strength
+
+```{r}
+m1 <- lmer( scale(Breadth) ~ scale(strengthOut) + numID +  ( scale(strengthOut) | subID), data=trainFull)
+summary(m1)
+
+m2 <- lmer( scale(Breadth) ~ scale(UD.M.Streng) + numID +  ( scale(UD.M.Streng) | subID), data=trainFull)
+summary(m2)
+
+m3 <- lmer( scale(Breadth) ~ scale(UD.C.Streng) + numID +  ( scale(UD.C.Streng) | subID), data=trainFull)
+summary(m3)
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m2)$coefficients[1], summary(m2)$coefficients[4])
+
+zTest(summary(m1)$coefficients[1], summary(m1)$coefficients[4], summary(m3)$coefficients[1], summary(m3)$coefficients[4])
+```
+
