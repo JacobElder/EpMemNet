@@ -1,0 +1,855 @@
+---
+title: "Transformative Experiences and Counterfactuals"
+format:
+  html:
+    theme: blood
+    highlight-style: monokai
+    code-block-bg: "#272822"
+fontsize: .7em
+editor: visual
+width: 1360
+height: 800
+echo: true
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(groundhog)
+
+pkgs <-  c("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary")
+groundhog.day <- '2022-07-25'
+#groundhog.library(pkgs, groundhog.day)
+pacman::p_load("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary")
+here::i_am("Study 2/Analysis/study2finalAnalyses.qmd")
+
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
+
+fullLong <- arrow::read_parquet(here("Study 2","Data", "longEpMNet2.parquet"))
+fullShort <- arrow::read_parquet(here("Study 2","Data","shortEpMNet2.parquet"))
+rankData <- arrow::read_parquet(here("Study 2","Data","rankings2.parquet"))
+fullLong$subID <- as.numeric(fullLong$subID)
+fullLong$Simulate <- as.factor(fullLong$Simulate)
+levels(fullLong$Simulate) <- list("Keep"  = "1", "Remove" = "2", "Substitute" = "3")
+
+fullSimDf <- arrow::read_parquet(here("Study 2","Data", "simEpMNet2.parquet"))
+fullData <- fullLong %>% full_join(fullShort, by = c("subID"))
+fullData$subID <- as.factor(fullData$subID)
+
+# pal1 <-n colorRampPalette(brewer.pal(11,"BrBG"))(227)
+pal <- colorRampPalette(wes_palette("Zissou1", 5))(length(unique(fullLong$subID)))
+```
+
+# Results
+
+## Wordcloud of Frequently Used Words
+
+```{r, echo = FALSE}
+# Wordcloud
+#Create a vector containing only the text
+text <- as.vector(fullData$memory)
+# Create a corpus  
+docs <- Corpus(VectorSource(text))
+docs <- docs %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+docs <- tm_map(docs, content_transformer(tolower))
+docs <- tm_map(docs, removeWords, stopwords("english"))
+docs <- tm_map(docs, removeWords, c("the","and"))
+
+dtm <- TermDocumentMatrix(docs) 
+matrix <- as.matrix(dtm) 
+words <- sort(rowSums(matrix),decreasing=TRUE) 
+df <- data.frame(word = names(words),freq=words)
+
+set.seed(24)
+wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+## Table of Experiences
+
+```{r, echo=F}
+as.tibble(fullLong$memory) %>% 
+  kable %>%
+  kable_styling("striped", full_width = F) %>% 
+ scroll_box(width = "800px", height = "6000px")
+
+```
+
+```{r}
+rankDataRET <- merge(rankData, fullLong, by.x = c("subID","RET"), by.y=c("subID","memCode"),all.x=T)
+m <- glmer(outdegree ~ ordered(Rank) + (1 | subID), family=poisson(), data=rankDataRET)
+summary(m)
+
+rankDataRPT <- merge(rankData, fullLong, by.x = c("subID","RPT"), by.y=c("subID","memCode"),all.x=T)
+m <- glmer(outdegree ~ ordered(Rank) + (1 | subID), family=poisson(), data=rankDataRPT)
+summary(m)
+```
+
+```{r}
+rankDataRET <- merge(rankData, fullLong, by.x = c("subID","RET"), by.y=c("subID","memCode"),all=T)
+rankDataRET$Rank[is.na(rankDataRET$Rank)] <- "Rest"
+summedRET <- Rmisc::summarySE(measurevar = "outdegree", groupvars = "Rank", na.rm=T, data= rankDataRET)
+
+ggplot(data=summedRET, aes(x=Rank, y=outdegree)) +
+  geom_bar(stat="identity", fill="steelblue")
+
+rankDataRPT <- merge(rankData, fullLong, by.x = c("subID","RPT"), by.y=c("subID","memCode"),all=T)
+rankDataRPT$Rank[is.na(rankDataRPT$Rank)] <- "Rest"
+summedRPT <- Rmisc::summarySE(measurevar = "outdegree", groupvars = "Rank", na.rm=T, data= rankDataRPT)
+
+ggplot(data=summedRPT, aes(x=Rank, y=outdegree)) +
+  geom_bar(stat="identity", fill="steelblue")
+```
+
+# Examples
+
+# Descriptives
+
+## Descriptives for Outward Implications
+
+```{r, echo = F}
+psych::describe(fullData$outdegree)
+```
+
+## Descriptives for Inward Causes
+
+```{r, echo=F}
+psych::describe(fullData$indegree)
+```
+
+## Descriptives for Number of Words
+
+```{r, echo=F}
+psych::describe(fullData$nwords)
+```
+
+# Main Effects
+
+## Number of Inward Causes Predict Positivity
+
+```{r, echo=FALSE}
+m<-lmer( scale(positive) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+r2beta(m)
+
+```
+
+### Cross-Validation
+
+```{r}
+predictions <- predict(m, testFull, allow.new.levels=T)
+Metrics::rae(scale(testFull$positive[!is.na(testFull$positive) & !is.na(predictions)]), predictions[!is.na(testFull$positive) & !is.na(predictions)])
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( positive ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=trainFull)
+mer <- ggpredict(m, terms = c("indegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("indegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Inward Causes") + ylab("Self-Reported Positivity") + geom_line(alpha=.001) + ylim(0,100)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Inward Causes") + ylab("Self-Reported Positivity")
+p3 <- (p1+p2)
+p3
+```
+
+------------------------------------------------------------------------
+
+## Weaker Negative Effect for Negativity
+
+```{r, echo=FALSE}
+m<-lmer( scale(negative) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+### Cross-Validation
+
+```{r}
+predictions <- predict(m, testFull, allow.new.levels=T)
+Metrics::rae(scale(testFull$negative[!is.na(testFull$negative) & !is.na(predictions)]), predictions[!is.na(testFull$negative) & !is.na(predictions)])
+```
+
+## VADER Classified Positive Sentiment
+
+```{r, echo=FALSE}
+as.tibble(fullData$memory[order(-fullData$vad_pos)]) %>% 
+  kable %>%
+  kable_styling("striped", full_width = F) %>% 
+ scroll_box(width = "800px", height = "6000px")
+```
+
+## VADER Classified Negative Sentiment
+
+```{r, echo=FALSE}
+as.tibble(fullData$memory[order(-fullData$vad_neg)]) %>% 
+  kable %>%
+  kable_styling("striped", full_width = F) %>% 
+ scroll_box(width = "800px", height = "6000px")
+```
+
+## Effects Replicate for Positivity of Text
+
+```{r, echo=F}
+m<-lmer( scale(vad_pos) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+r2beta(m)
+```
+
+### Cross-Validation
+
+```{r}
+predictions <- predict(m, testFull, allow.new.levels=T)
+Metrics::rae(scale(testFull$vad_pos[!is.na(testFull$vad_pos) & !is.na(predictions)]), predictions[!is.na(testFull$vad_pos) & !is.na(predictions)])
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( vad_pos ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("indegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("indegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Text Positivity") + geom_line(alpha=.001) #+ ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Text Positivity")
+print(p1+p2)
+```
+
+## Responsibility Towards Experience Predicts Positivity
+
+```{r, echo=F}
+m<-lmer( scale(vad_pos) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Number of Outward Implications Predict Clarity
+
+```{r, echo=F}
+m<-lmer(scale(Clear) ~  scale(outdegree) + scale(indegree) + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+r2beta(m)
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Cert ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Certainty") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Certainty")
+print(p1+p2)
+```
+
+## Strength of Outward Implications Predicts Certainty
+
+```{r, echo=F}
+m<-lmer(scale(Clear) ~  scale(strengthIn) + scale(strengthOut) + numID + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Outward Implications More Easy to Recall
+
+```{r, echo=F}
+m<-lmer( scale(Easy) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Clear ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Clarity") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Clarity")
+print(p1+p2)
+```
+
+------------------------------------------------------------------------
+
+## Stronger Outward Implications More Clearly Defined
+
+```{r, echo=F}
+m<-lmer( scale(Easy) ~  scale(strengthIn) + scale(strengthOut) + numID + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Outward Implications are More 'Fundamental'
+
+```{r, echo=F}
+m<-lmer( scale(Fund) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+r2beta(m)
+```
+
+### Cross-Validation
+
+```{r}
+predictions <- predict(m, testFull, allow.new.levels=T)
+Metrics::rae(scale(testFull$Fund[!is.na(testFull$Fund) & !is.na(predictions)]), predictions[!is.na(testFull$Fund) & !is.na(predictions)])
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Fund ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Fundamentality") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Fundamentality") #+ ylim(1,7)
+print(p1+p2)
+```
+
+## Stronger Outward Implications/Inward Causes are More Fundamental
+
+```{r, echo=F}
+m<-lmer( scale(Fund) ~  scale(strengthIn) + scale(strengthOut) + numID + ( scale(strengthIn) + scale(strengthOut) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+r2beta(m)
+```
+
+## More Outward Implications are Perceived as Changing Person
+
+```{r, echo=F}
+m<-lmer( scale(Chan) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Exploratory: Does outdegree's effect on changing person depend on indegree?
+
+```{r}
+m<-lmer( scale(Chan) ~  scale(outdegree) * scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Chan ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Transformativeness") + geom_line(alpha=.001) #+ ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Transformativeness") #+ ylim(1,7)
+print(p1+p2)
+```
+
+## Stronger Outward Implications are Perceived as Changing Person
+
+```{r, echo=F}
+m<-lmer( scale(Chan) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+## More Outward Implications are More Broad
+
+Supports a taxonomical/hierarchical structure?
+
+```{r, echo=F}
+m<-lmer( scale(Breadth) ~  scale(outdegree) + scale(indegree) + numID + scale(length) + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+### Cross-Validation
+
+```{r}
+predictions <- predict(m, testFull, allow.new.levels=T)
+Metrics::rae(scale(testFull$Breadth[!is.na(testFull$Breadth) & !is.na(predictions)]), predictions[!is.na(testFull$Breadth) & !is.na(predictions)])
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Breadth ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Specific <--> Broad") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Specific <--> Broad")
+print(p1+p2)
+```
+
+## Stronger Outward Implications are More Broad
+
+```{r, echo=FALSE}
+m<-lmer( scale(Breadth) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Outward Implications Predicts More Specific Neighbors
+
+Further support of hierarchical structure?
+
+```{r, echo=F}
+m<-lmer( scale(Breadth_neighs) ~  outdegree + indegree + numID + scale(length) + ( outdegree + indegree | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Outward Implications Taught More
+
+```{r, echo=F}
+m<-lmer( scale(Taught) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+### Cross-Validation
+
+```{r}
+predictions <- predict(m, testFull, allow.new.levels=T)
+Metrics::rae(scale(testFull$Dist[!is.na(testFull$Dist) & !is.na(predictions)]), predictions[!is.na(testFull$Dist) & !is.na(predictions)])
+```
+
+------------------------------------------------------------------------
+
+```{r, echo=F}
+m<-lmer( Dist ~  outdegree + indegree + numID + length + ( outdegree + indegree | subID), data=fullData)
+mer <- ggpredict(m, terms = c("outdegree", "subID"), type = "re")
+mef <- ggpredict(m, terms = c("outdegree"), type = "re")
+p1<-plot(mer, ci=F, show.title=F) + scale_color_manual(values=pal)  + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Distinctness") + geom_line(alpha=.001) + ylim(1,7)
+p2 <- plot(mef, show.title=F) + jtools::theme_apa() + theme(legend.position = "none") + xlab("Number of Implications") + ylab("Distinctness")
+print(p1+p2)
+```
+
+## More Responsible Outward Implications Taught More
+
+```{r, echo=F}
+m<-lmer( scale(Taught) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Knowing What Experience Would Be Like
+
+```{r}
+m<-lmer( scale(Know) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(Know) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Controllability: Lower Indegree
+
+```{r}
+m<-lmer( scale(Control) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(Control) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Locus
+
+```{r}
+m<-lmer( scale(Locus) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(Locus) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Stability
+
+```{r}
+m<-lmer( scale(Stability) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(Stability) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Inward Causes More Expected
+
+```{r}
+m<-lmer( scale(Expect) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## More Responsibility towards It, More Expected
+
+```{r}
+m<-lmer( scale(Expect) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Simulation and Association with Indegree
+
+```{r}
+contrasts(fullLong$Simulate) <- contr.sum(3)
+m<-glmer( indegree ~  Simulate + numID + ( Simulate | subID), data=fullData, family=poisson())
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("Simulate")) %>% plot()
+```
+
+## Simulation and Association with Outdegree
+
+```{r}
+m<-glmer( outdegree ~  Simulate + numID + ( Simulate | subID), data=fullData, family=poisson())
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("Simulate")) %>% plot()
+```
+
+```{r}
+m<-lmer( positive ~  Simulate*CESD + numID + ( Simulate | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("CESD","Simulate")) %>% plot()
+```
+
+## Self-Others
+
+```{r}
+fullData$SOf <- ordered(fullData$SO)
+ordinal_model <- clmm(SOf ~ scale(outdegree) + scale(indegree) + numID +
+                        ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+summary(ordinal_model)
+```
+
+# Similarities
+
+Memories that share other memories in common (as implications or causes) are reflected upon similarly...
+
+## Relational Similarity Predicts Similarity in Positivity
+
+```{r,echo=F}
+m<-lmer( scale(positive) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Negativity
+
+```{r,echo=F}
+m<-lmer( scale(negative) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Changeability
+
+```{r,echo=F}
+m<-lmer( scale(Clear) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Clarity
+
+```{r,echo=F}
+m<-lmer( scale(Clear) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Certainty
+
+```{r,echo=F}
+m<-lmer( scale(Cert) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## Relational Similarity Predicts Similarity in Breadth
+
+```{r,echo=F}
+m<-lmer( scale(Breadth) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(Fund) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(Expect) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+# Individual Differences Main Effects
+
+## Self-Esteem
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SE) + numID + scale(length) + ( scale(SE) | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SE) + numID + scale(length) + ( scale(SE) | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### Small Effect of Self-Esteem on Strength
+
+More self-esteem, less similarity among memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SE) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Self-Concept Clarity
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SCC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SCC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SCC) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Depression
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(CESD) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(CESD) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No Effect on Strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(CESD) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Need for Cognition
+
+------------------------------------------------------------------------
+
+### No Effect on Outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(NFC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### More need for cognition, more inward causes
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(NFC) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### More need for cognition, more similarity to other memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(NFC) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## No Effects of Self-Ambivalence
+
+------------------------------------------------------------------------
+
+### No effect on outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SAM) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SAM) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SAM) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effect of Sense of Self on Inward Causes
+
+------------------------------------------------------------------------
+
+### No effect on outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(SOS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+
+```
+
+------------------------------------------------------------------------
+
+## Lower sense of self, more inward causes
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(SOS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### Lower sense of self, more similarity to other memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(SOS) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effect of Psychopathy on Outward Implications
+
+------------------------------------------------------------------------
+
+## Lower psychopathy, more outward implications
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(DT_P) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(DT_P) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(DT_P) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effects of Dialectical Self
+
+------------------------------------------------------------------------
+
+### No effect of outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(DS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### Lower dialectical self-views, more inward causes
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(DS) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### More dialectical self-views, less similarity to other memories
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(DS) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Small Effect of Interoceptive Awareness
+
+------------------------------------------------------------------------
+
+### No effect on outdegree
+
+```{r, echo=F}
+m<-glmer( outdegree ~  scale(MAIA) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on indegree
+
+```{r, echo=F}
+m<-glmer( indegree ~  scale(MAIA) + numID + scale(length) + ( 1 | subID), data=fullData, family="poisson")
+tbl_regression(m) %>% as_gt()
+```
+
+------------------------------------------------------------------------
+
+### No effect on Strength
+
+```{r, echo=F}
+m<-lmer( scale(strength) ~  scale(MAIA) + numID + scale(length) + ( 1 | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+# Individual Differences Correlations
+
+------------------------------------------------------------------------
+
+```{r, echo=F,include=F}
+fullShort <- do.call(data.frame,                      # Replace Inf in data by NA
+                   lapply(fullShort,
+                          function(x) replace(x, is.infinite(x), NA)))
+corMat <- fullShort %>% select(edgeTot:NFC) %>% cor(fullShort,use="pairwise.complete.obs")
+
+outphm <- pheatmap(corMat, fontsize_row = 6, fontsize_col = 6, angle_col = 45, angle_row =45, width=100, height = 200 )
+
+```
+
+```{r, echo=F}
+heatmaply_cor(round(corMat,3.5), Rowv=outphm[[1]], Colv=outphm[[2]], revC=TRUE, fontsize_row = 2.5, fontsize_col = 3, angle_col = 45, angle_row =45,  limits = c(-1, 1), colors = colorRampPalette(rev(brewer.pal(n = 7, name =
+  "RdYlBu")))(100) )
+```
