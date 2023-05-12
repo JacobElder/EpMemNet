@@ -1,0 +1,1193 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(groundhog)
+pkgs <-  c("tidyverse","here", "igraph")
+# groundhog.day <- '2023-03-02'
+# groundhog.library(pkgs, groundhog.day)
+pacman::p_load("tidyverse","here", "igraph")
+here::i_am("Study 2/cleaning/epmnCleaning_S2.Rmd")
+```
+
+```{r}
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/assortativityNA.R")
+```
+
+
+```{r}
+rawDf <- data.table::fread("/Volumes/Research Project/Episodic Memory Network/Study 3/input/epmnRaw3.csv")
+rawDf <- as.data.frame(rawDf)
+
+rawDf <- subset(rawDf, id != 47001)
+
+memMax <- 20
+```
+
+# Create functions
+
+```{r}
+is.emptyString <- function(input){
+  if(input==''){
+    output <- TRUE
+  }else{
+    output <- FALSE
+  }
+  return(output)
+}
+```
+
+
+# Fixed duplicated names
+
+```{r}
+# _I1 shouldn't be in names
+colnames(rawDf) <- gsub("_I1", "", colnames(rawDf))
+
+# Qualtrics loop and merge was defaulting to numbering the blocks as 38 through 63 instead
+# of 2 through 30, so had to fix all instance
+length(grep("Identity Nominations",colnames(rawDf))) # Are there 20?
+inds <- grep("_35",colnames(rawDf)) # what are indices where indexing goes awry
+for(i in inds){
+  
+  #name <- str_extract(colnames(rawDf)[i], "[^_]+") # get variable name
+  #colnames(rawDf)[(i-1):(i+28)] <- paste0(name,"_",1:30) # replace suffix numbering
+  
+  # split variable names based on underscores
+  listOfColNames <- strsplit(colnames(rawDf)[(i-1):(i+18)],split="_")
+  for(t in 1:20){ # iterate through each element and relabel suffix (e.g., 35 to 2)
+    listOfColNames[[t]][length(listOfColNames[[t]])] <- t
+  }
+  # collapse character vector into one string
+  listOfColNames <- lapply(listOfColNames, function(x) paste(x, sep="_",collapse="_"))
+  colnames(rawDf)[(i-1):(i+18)] <- unlist(listOfColNames) # assign
+  
+  # for(j in 1:30){
+  #   if(t < 10){
+  #     colnames(rawDf)
+  #   }else{
+  #     
+  #   }
+  #   t + 1
+  # }
+  
+}
+
+inds <- grep("^35_",colnames(rawDf)) # what are indices where indexing goes awry
+for(j in 34:(34+memMax)){
+  if(j==34){
+    colnames(rawDf) <- gsub(x = colnames(rawDf), pattern = paste0("^",(j-33),"_"), replacement = paste0("M",(j-33),"_"))
+  }else if(j>48){ # labels jump from 1.. 35:48.. 64:68.. had to jerry-rig a replacement solution
+    j <- j+15
+    colnames(rawDf) <- gsub(x = colnames(rawDf), pattern = paste0("^",j,"_"), replacement = paste0("M",(j-48),"_"))
+  }else{
+    colnames(rawDf) <- gsub(x = colnames(rawDf), pattern = paste0("^",j,"_"), replacement = paste0("M",(j-33),"_"))
+  }
+  
+if(any(colnames(rawDf)=="4M1_Relations")){
+  print("Something is messed up")
+  break
+}
+    
+}
+
+# Shorten Identity Nominations label
+rawDf <- dplyr::rename_with(rawDf, ~ gsub("Identity Nominations", "IdNoms", .x, fixed = TRUE))
+
+rawDf <- as_tibble(rawDf)
+```
+
+# Fix Length
+
+```{r}
+rawDf <- rawDf %>% 
+  mutate_at(vars(contains('Length_')), funs(as.numeric(.)))
+
+timeCols <- grep("Length_",colnames(rawDf))
+
+for(c in timeCols){
+  
+  rawDf[which(rawDf[c] == boxplot.stats(rawDf[[c]])$out),c] <- NA
+  
+}
+```
+
+
+```{r}
+rawDf <- rawDf %>% rename(subID = id)
+
+rawDf <- rawDf[!duplicated(rawDf$subID),]
+```
+
+```{r}
+
+
+memMat <- matrix(NA,ncol=1+memMax,nrow=nrow(rawDf))
+for(n in 1:nrow(rawDf) ){
+  memories <- rawDf %>% 
+    select(IdNoms_1:IdNoms_20) %>%
+    slice(n) %>%
+    as_vector()
+  
+  memIndices <- memories %>%
+    map(is.emptyString) %>%
+    unlist()
+  
+  memories[memIndices] <- NA
+  
+  memMat[n,] <- c(rawDf$subID[n], memories)
+  
+  
+    
+}
+
+memMat <- as_tibble(memMat)
+colnames(memMat) <- c("subID",paste0("I",1:memMax))
+```
+
+```{r}
+allNA <- which( rowSums(is.na(memMat[,2:(1+memMax)])) != memMax ) # which rows are not all NA
+notallNAsubs <- memMat$subID[allNA]
+rawDf <- rawDf[rawDf$subID %in% notallNAsubs,]
+```
+
+```{r}
+Dfs <- unique(rawDf$subID)
+```
+
+# Causal Network Generation
+
+```{r}
+rawDfC <- subset(rawDf, NType=="C")
+
+  uIds <- unique(rawDfC$subID)
+  # column names
+  idSubsC <- rawDfC %>%
+    select(contains("_Relations"))
+
+  # Subjects to remove based on network
+  removeSubsC <- c()
+  for(n in 1:nrow(rawDfC)){
+    i <- rawDfC$subID[n]
+    
+    idNames <- memMat[memMat$subID==i,2:(1+memMax)] %>% as_vector() %>% na.omit()
+    numMems <- sum(!is.na(memMat[memMat$subID==i,2:(1+memMax)]))
+    
+    # subset subject row
+    subDf <- rawDf[rawDf$subID==i,]
+    # generate empty matrix
+    subMat <- matrix(data = 0, nrow = numMems, ncol = numMems)
+    subMatW <- matrix(data = 0, nrow = numMems, ncol = numMems)
+    for(c in 1:numMems){
+      # subset identity "c"
+      j <- idSubsC[n,c]
+      # split words by comma
+      selectWord <-strsplit(as.character(idSubsC[n,c][[1]]),",") 
+      if(length(selectWord[[1]])==0){
+        next
+      }
+      
+      # which column index are select identities
+      ######rowSub <-which(idNames %in% selectWord[[1]])
+      # populate 1s for select identities in row and column for undirected
+      subMat[as.numeric(unlist(selectWord)),c] <- 1 # Unweighted matrix
+      diag(subMat) <- 0 # Set diagonal to 0s if participants nominated any self-connections
+      for(p in unlist(selectWord)){
+        
+      if(subMatW[as.numeric(unlist(p)),c]==0){
+        
+        subMatW[as.numeric(unlist(p)),c]  <- as.numeric ( rawDfC[n,paste0("M",c,"_Sim_",as.numeric(unlist(p) ))] ) # Weighted matrix
+        
+      }else if(subMatW[as.numeric(unlist(p)),c]>0){
+        
+        subMatW[as.numeric(unlist(p)),c]  <- mean(c(subMatW[as.numeric(unlist(p)),c], as.numeric ( rawDfC[n,paste0("M",c,"_Sim_",as.numeric(unlist(p) ))] )  )) # Weighted matrix
+        
+      }
+        
+      }
+      # if participant didn't indicate weight, replace with 0
+      subMatW[is.na(subMatW)] <- 0
+      # Flipped direction of fraction so more overlap is closer between identities
+      
+      diag(subMatW) <- 0 # Set diagonal to 0s if participants nominated any self-connections
+  }
+    rownames(subMat) <- idNames
+    colnames(subMat) <- idNames
+    
+    rownames(subMatW) <- idNames
+    colnames(subMatW) <- idNames
+  
+      # convert to graph
+    subGraph <- graph.adjacency(subMat, mode="directed")
+    subGraphW <- graph.adjacency(subMatW, weighted = T, mode="directed")
+    
+    # coerce to undirected
+    # subGraph.UD.C <- as.undirected(subGraph, mode="collapse")
+    # subGraph.UD.M <- as.undirected(subGraph, mode="mutual")
+    # subGraphW.UD.C <- as.undirected(subGraphW, mode="collapse")
+    # subGraphW.UD.M <- as.undirected(subGraphW, mode="mutual")
+    
+    # label
+    assign(paste0("subIMat.",i),subMat)
+    assign(paste0("subIGraph.",i),subGraph)
+    
+    assign(paste0("subIMatW.",i),subMatW)
+    assign(paste0("subIGraphW.",i),subGraphW)
+    
+    # label undirected
+    # assign(paste0("subGraph.UD.C.",i),subGraph.UD.C)
+    # assign(paste0("subGraph.UD.M.",i),subGraph.UD.M)
+    # assign(paste0("subGraphW.UD.C.",i),subGraphW.UD.C)
+    # assign(paste0("subGraphW.UD.M.",i),subGraphW.UD.M)
+    
+    if(length(E(subGraph))==0 | length(V(subGraph)) < 4 ){
+      removeSubsC <- c(removeSubsC, i)
+      rm(list = c(paste0("subIGraph.",i)))
+      rm(list = c(paste0("subIGraphW.",i)))
+      rm(list = c(paste0("subIMat.",i)))
+      rm(list = c(paste0("subIMatW.",i)))
+      
+      # rm(list = c(paste0("subGraph.UD.C.",i)))
+      # rm(list = c(paste0("subGraph.UD.M.",i)))
+      # rm(list = c(paste0("subGraphW.UD.C.",i)))
+      # rm(list = c(paste0("subGraphW.UD.M.",i)))
+    }
+    
+  }
+  
+```
+
+# Associativist Network Creation
+
+```{r}
+rawDfA <- subset(rawDf, NType=="A")
+
+  uIds <- unique(rawDfA$subID)
+  # column names
+  idSubsA <- rawDfA %>%
+    select(contains("_Relations.A"))
+
+  # Subjects to remove based on network
+  removeSubsA <- c()
+  for(n in 1:nrow(rawDfA)){
+    i <- rawDfA$subID[n]
+    
+    idNames <- memMat[memMat$subID==i,2:(1+memMax)] %>% as_vector() %>% na.omit()
+    numMems <- sum(!is.na(memMat[memMat$subID==i,2:(1+memMax)]))
+    
+    # subset subject row
+    subDf <- rawDf[rawDf$subID==i,]
+    # generate empty matrix
+    subMat <- matrix(data = 0, nrow = numMems, ncol = numMems)
+    subMatW <- matrix(data = 0, nrow = numMems, ncol = numMems)
+    for(c in 1:numMems){
+      # subset identity "c"
+      j <- idSubsA[n,c]
+      # split words by comma
+      selectWord <-strsplit(as.character(idSubsA[n,c][[1]]),",") 
+      if(length(selectWord[[1]])==0){
+        next
+      }
+      
+      # which column index are select identities
+      ######rowSub <-which(idNames %in% selectWord[[1]])
+      # populate 1s for select identities in row and column for undirected
+      subMat[as.numeric(unlist(selectWord)),c] <- 1 # Unweighted matrix
+      # populate both directions for undirected network
+      subMat[c,as.numeric(unlist(selectWord))] <- 1 # Unweighted matrix
+      diag(subMat) <- 0 # Set diagonal to 0s if participants nominated any self-connections
+      for(p in unlist(selectWord)){
+        
+      if(subMatW[as.numeric(unlist(p)),c]==0){
+        
+        subMatW[as.numeric(unlist(p)),c]  <- as.numeric ( rawDfA[n,paste0("M",c,"_Sim.A_",as.numeric(unlist(p) ))] ) # Weighted matrix
+        subMatW[c,as.numeric(unlist(p))]  <- as.numeric ( rawDfA[n,paste0("M",c,"_Sim.A_",as.numeric(unlist(p) ))] ) # Weighted matrix
+        
+      }else if(subMatW[as.numeric(unlist(p)),c]>0){
+        
+        subMatW[as.numeric(unlist(p)),c]  <- mean(c(subMatW[as.numeric(unlist(p)),c], as.numeric ( rawDfA[n,paste0("M",c,"_Sim.A_",as.numeric(unlist(p) ))] )  )) # Weighted matrix
+        
+        subMatW[c,as.numeric(unlist(p))]  <- mean(c(subMatW[c,as.numeric(unlist(p))], as.numeric ( rawDfA[n,paste0("M",c,"_Sim.A_",as.numeric(unlist(p) ))] )  )) # Weighted matrix
+        
+      }
+        
+      }
+      # if participant didn't indicate weight, replace with 0
+      subMatW[is.na(subMatW)] <- 0
+      # Flipped direction of fraction so more overlap is closer between identities
+      
+      diag(subMatW) <- 0 # Set diagonal to 0s if participants nominated any self-connections
+  }
+    rownames(subMat) <- idNames
+    colnames(subMat) <- idNames
+    
+    rownames(subMatW) <- idNames
+    colnames(subMatW) <- idNames
+  
+      # convert to graph
+    subGraph <- graph.adjacency(subMat, mode="undirected")
+    subGraphW <- graph.adjacency(subMatW, weighted = T, mode="undirected")
+    
+    # coerce to undirected
+    # subGraph.UD.C <- as.undirected(subGraph, mode="collapse")
+    # subGraph.UD.M <- as.undirected(subGraph, mode="mutual")
+    # subGraphW.UD.C <- as.undirected(subGraphW, mode="collapse")
+    # subGraphW.UD.M <- as.undirected(subGraphW, mode="mutual")
+    
+    # label
+    assign(paste0("subIMat.",i),subMat)
+    assign(paste0("subIGraph.",i),subGraph)
+    
+    assign(paste0("subIMatW.",i),subMatW)
+    assign(paste0("subIGraphW.",i),subGraphW)
+    
+    # label undirected
+    # assign(paste0("subGraph.UD.C.",i),subGraph.UD.C)
+    # assign(paste0("subGraph.UD.M.",i),subGraph.UD.M)
+    # assign(paste0("subGraphW.UD.C.",i),subGraphW.UD.C)
+    # assign(paste0("subGraphW.UD.M.",i),subGraphW.UD.M)
+    
+    if(length(E(subGraph))==0 | length(V(subGraph)) < 4 ){
+      removeSubsA <- c(removeSubsA, i)
+      rm(list = c(paste0("subIGraph.",i)))
+      rm(list = c(paste0("subIGraphW.",i)))
+      rm(list = c(paste0("subIMat.",i)))
+      rm(list = c(paste0("subIMatW.",i)))
+      
+      # rm(list = c(paste0("subGraph.UD.C.",i)))
+      # rm(list = c(paste0("subGraph.UD.M.",i)))
+      # rm(list = c(paste0("subGraphW.UD.C.",i)))
+      # rm(list = c(paste0("subGraphW.UD.M.",i)))
+    }
+    
+  }
+  
+```
+
+
+```{r}
+removeSubs <- c(removeSubsA, removeSubsC)
+rawDf <-  rawDf[!(rawDf$subID %in% removeSubs),]
+```
+
+
+```{r}
+computeNeighbors <- function(graph, label, variable, type = "all"){
+  curNeigh <- neighbors(graph, label, mode = type)
+  curGraph <- induced.subgraph(graph, curNeigh)
+  impInd <- which(!is.na(vertex_attr(curGraph, variable)))
+  impGraph <- induced.subgraph(curGraph, impInd)
+  valuesImp <- vertex_attr(impGraph, variable)
+  neighAve <- mean(as.numeric(valuesImp), na.rm = TRUE)
+  return(neighAve)
+}
+computeNeighbors <- compiler::cmpfun(computeNeighbors)
+
+modularityWT <- function(g){
+  wtc <- cluster_walktrap(g)
+  modularity(g, membership(wtc))
+}
+
+# Compactness/Breadth: Lower values are more compact, shorter distances in network
+Compactness <- function(g) {
+        gra.geo <- distances(g) ## get geodesics
+        gra.rdist <- 1/gra.geo  ## get reciprocal of geodesics
+        diag(gra.rdist) <- NA   ## assign NA to diagonal
+        gra.rdist[gra.rdist == Inf] <- 0 ## replace infinity with 0
+          # Compactness = mean of reciprocal distances
+        comp.igph <- mean(gra.rdist, na.rm=TRUE) 
+        return(comp.igph)
+        }
+```
+
+# Fix all scale questions
+
+```{r}
+colnames(rawDf) <- gsub("_Fund_1$","_Fund",colnames(rawDf))
+colnames(rawDf) <- gsub("_Expect_1$","_Expect",colnames(rawDf))
+colnames(rawDf) <- gsub("_Initiate_1$","_Initiate",colnames(rawDf))
+colnames(rawDf) <- gsub("_Control_1$","_Control",colnames(rawDf))
+colnames(rawDf) <- gsub("_Stability_1$","_Stability",colnames(rawDf))
+colnames(rawDf) <- gsub("_Locus_1$","_Locus",colnames(rawDf))
+```
+
+```{r}
+rawDfC <- subset(rawDf, NType == "C")
+rawDfA <- subset(rawDf, NType == "A")
+```
+
+
+# Causal Dataframe Organization
+
+```{r}
+causalLong <- matrix(nrow=0,ncol=65)
+
+causalShort <- matrix(nrow=0,ncol=53)
+
+uIds <- unique(rawDfC$subID)
+
+colnames(rawDfC)[which(colnames(rawDfC)=="M1_IM"):(which(colnames(rawDfC)=="M1_IM")+22)]
+varnames <- c("IM", "Pos", "Neg", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability", "SO", "Simulate", "T.Y", "T.M", "D.D")
+
+  # uIds <- get(paste0("T",i,"s"))
+  # raw <- get(paste0("T",i,"raw"))
+
+  for(j in 1:length(uIds)){
+    subID <- uIds[j]
+    subNetUW <- get(paste0("subIGraph.",subID))
+    subNetW <- get(paste0("subIGraphW.",subID))
+    numMems <- sum(!is.na(memMat[memMat$subID==subID,2:(memMax+1) ]))
+    
+    tsubNetW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetW))))
+    tsubNetUW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetUW))))
+    
+    subNet.UD.C <- as.undirected(subNetUW, mode="collapse")
+    subNet.UD.M <- as.undirected(subNetUW, mode="mutual")
+    subNetW.UD.C <- as.undirected(subNetW, mode="collapse")
+    subNetW.UD.M <- as.undirected(subNetW, mode="mutual")
+    
+    variables <- c("IM", "Val_1", "Val_2", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability", "SO", "Simulate", "Length_12", "Length_13", "Length_14")
+    for(v in variables){
+      aVar <- as.numeric(rawDfC[rawDfC$subID==subID, paste0("M",1:numMems,"_",v)])
+      assign(v,aVar)
+    }
+    
+    V(subNetUW)$IM <- IM
+    V(subNetUW)$Val_1 <- Val_1
+    V(subNetUW)$Val_2 <- Val_2
+    V(subNetUW)$Clear <- Clear
+    V(subNetUW)$Easy <- Easy
+    V(subNetUW)$Rep <- Rep
+    V(subNetUW)$Fund <- Fund
+    V(subNetUW)$Chan <- Chan
+    V(subNetUW)$Know <- Know
+    V(subNetUW)$Taught <- Taught
+    V(subNetUW)$Expect <- Expect
+    V(subNetUW)$Breadth <- Breadth
+    V(subNetUW)$Initiate <- Initiate
+    V(subNetUW)$Locus <- Locus
+    V(subNetUW)$Control <- Control
+    V(subNetUW)$Stability <- Stability
+    V(subNetUW)$SO <- SO
+    V(subNetUW)$Simulate <- Simulate
+    V(subNetUW)$Length_12 <- Length_12
+    V(subNetUW)$Length_13 <- Length_13
+    V(subNetUW)$Length_14 <- Length_14
+    
+    V(subNetW)$IM <- IM
+    V(subNetW)$Val_1 <- Val_1
+    V(subNetW)$Val_2 <- Val_2
+    V(subNetW)$Clear <- Clear
+    V(subNetW)$Easy <- Easy
+    V(subNetW)$Rep <- Rep
+    V(subNetW)$Fund <- Fund
+    V(subNetW)$Chan <- Chan
+    V(subNetW)$Know <- Know
+    V(subNetW)$Taught <- Taught
+    V(subNetW)$Expect <- Expect
+    V(subNetW)$Breadth <- Breadth
+    V(subNetW)$Initiate <- Initiate
+    V(subNetW)$Locus <- Locus
+    V(subNetW)$Control <- Control
+    V(subNetW)$Stability <- Stability
+    V(subNetW)$SO <- SO
+    V(subNetW)$Simulate <- Simulate
+    V(subNetW)$Length_12 <- Length_12
+    V(subNetW)$Length_13 <- Length_13
+    V(subNetW)$Length_14 <- Length_14
+    
+    subLong <- 
+      cbind(subID,
+          as_vector(memMat[memMat$subID==subID,2:(numMems+1)]),
+          seq(1,numMems),
+          degree(subNetUW),
+          degree(subNetUW,mode="out"),
+          degree(subNetUW,mode="in"),
+          strength(subNetW),
+          strength(subNetW, mode="out"),
+          strength(subNetW, mode="in"),
+          eigen_centrality(subNetUW)$vector,
+          eigen_centrality(subNetW)$vector,
+          hub_score(subNetUW)$vector,
+          hub_score(subNetW)$vector,
+          page_rank(subNetUW)$vector,
+          page_rank(subNetW)$vector,
+          page_rank(tsubNetUW)$vector,
+          page_rank(tsubNetW)$vector,
+          authority_score(subNetUW)$vector,
+          authority_score(subNetW)$vector,
+          degree(subNet.UD.C),
+          degree(subNet.UD.M),
+          strength(subNetW.UD.C),
+          strength(subNetW.UD.M),
+          IM,
+          Val_1,
+          Val_2,
+          Clear,
+          Easy,
+          Rep,
+          Fund,
+          Chan,
+          Know,
+          Taught,
+          Expect,
+          Breadth,
+          Initiate,
+          Locus,
+          Control,
+          Stability,
+          SO,
+          Simulate,
+          Length_12,
+          Length_13,
+          Length_14
+          )
+    
+    for(v in variables){
+     aVar <- unlist(lapply(1:numMems, function(x) computeNeighbors(subNetUW, x, v, "all"))) 
+      assign(paste0(v,"_neighs"),aVar)
+    }
+    
+    subLong <- cbind(subLong,
+          IM_neighs,
+          Val_1_neighs,
+          Val_2_neighs,
+          Clear_neighs,
+          Easy_neighs,
+          Rep_neighs,
+          Fund_neighs,
+          Chan_neighs,
+          Know_neighs,
+          Taught_neighs,
+          Expect_neighs,
+          Breadth_neighs,
+          Initiate_neighs,
+          Locus_neighs,
+          Control_neighs,
+          Stability_neighs,
+          SO_neighs,
+          Simulate_neighs,
+          Length_12_neighs,
+          Length_13_neighs,
+          Length_14_neighs
+    
+    )
+    
+    
+    
+    # identity to identity network total edges
+    idEdgT <- ecount(subNetUW)
+    # density
+    density <- edge_density(subNetUW)
+    # average distance
+    aveDist <- mean_distance(subNetUW)
+    # clustering coefficient
+    idTrans <- transitivity(subNetUW, "global")
+    # small worldness
+    # global efficiency
+    globEff <- brainGraph::efficiency(subNetUW, type = "global")
+    # Mean strength
+    meanStre <- mean(strength(subNetW))
+    # Sum strength
+    sumStre <- sum(strength(subNetW))
+    # Similarity mean
+    idSimGlob <- (similarity(subNetW, method = "dice"))%>% .[lower.tri(.)] %>% mean()
+    # Reciprocity
+    recip <- reciprocity(subNetW)
+    # Diameter
+    diam <- diameter(subNetW)
+    # Average Path Length (Unweighted)
+    apl <- average.path.length(subNetUW)
+    # Average Path Length (weighted)
+    aplW <- average.path.length(subNetW)
+    # Modularity (Unweighted)
+    modular <- modularityWT(subNetUW)
+    # Modularity (Weighted)
+    modularW <- modularityWT(subNetW)
+    # Compactness (Unweighted)
+    compact <- Compactness(subNetUW)
+    # Compactness (Weighted)
+    compactW <- Compactness(subNetW)
+    # Cohesion (Unweighted)
+    cohes <- cohesion(subNetUW)
+    # Cohesion (Weighted)
+    cohesW <- cohesion(subNetW)
+    # Centralization
+    centrDeg <- centr_degree((subNetUW))$centralization 
+    centrBet <- centr_betw((subNetUW))$centralization
+    centrClo <- centr_clo((subNetUW))$centralization
+    centrEig <- centr_eigen((subNetUW))$centralization
+    # Centralization (Weighted)
+    centrDegW <- centr_degree((subNetW))$centralization 
+    centrBetW <- centr_betw((subNetW))$centralization
+    centrCloW <- centr_clo((subNetW))$centralization
+    centrEigW <- centr_eigen((subNetW))$centralization
+    # Dominance/Variability
+    sdDeg <- sd(degree(subNetUW))      
+    sdBet <- sd(betweenness(subNetUW))
+    sdClo <- sd(closeness(subNetUW))
+    sdEig <- sd(evcent(subNetUW)$vector)
+    # Dominance/Variability (Weighted)
+    sdDegW <- sd(degree(subNetW))      
+    sdBetW <- sd(betweenness(subNetW))
+    sdCloW <- sd(closeness(subNetW))
+    sdEigW <- sd(evcent(subNetW)$vector)
+    
+    variables <- c("IM", "Val_1", "Val_2", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability", "SO")
+    # assortativity identification
+    homophs <- unlist(
+      lapply(variables, function(x) assortativityNA(subNetUW, as.numeric(
+      vertex_attr(subNetUW, x) +
+      rnorm(1, 0, .00001), 
+      directed=T
+      )))
+    )
+    names(homophs) <- paste0(variables,"_homoph")
+    
+    subShort <- c(subID,idEdgT,density,aveDist,idTrans,globEff, numMems, meanStre, sumStre, idSimGlob, recip, diam, apl, aplW, modular, modularW, compact, compactW, cohes, cohesW, centrDeg, centrBet, centrClo, centrEig, centrDegW, centrBetW, centrCloW, centrEigW, sdDeg, sdBet, sdClo, sdEig,  sdDegW, sdBetW, sdCloW, sdEigW, homophs)
+    
+    causalLong <- rbind(causalLong, subLong)
+    causalShort <- rbind(causalShort, subShort)
+  }
+
+causalLong <- as.data.frame(causalLong)
+begNames <- c("subID","memory","memCode","degree", "outdegree", "indegree", "strength","strengthOut","strengthIn","eigen","eigenW","hub","hubW","page","pageW","pageOut","pageOutW","auth","authW","UD.C.Deg","UD.M.Deg","UD.C.Streng","UD.M.Streng")
+colnames(causalLong)[1:length(begNames)] <- begNames
+
+causalLong[4:ncol(causalLong)] <- apply(causalLong[4:ncol(causalLong)], 2, as.numeric)
+
+
+
+begNames <- c("subID","edgeTot","dense","aveDist","idTrans","globEff","numID",
+              "meanStre","sumStre","idSimGlob","recip","diam","apl","aplW",
+              "modular","modularW","compact","compactW","cohes","cohesW","centrDeg",
+              "centrBet","centrClo","centEig","centrDegW","centrBetW","centrCloW",
+              "centrEigW","sdDeg","sdBet","sdClo","sdEig","sdDegW","sdBetW","sdCloW","sdEigW",
+              paste0(variables,"_Homoph"))
+colnames(causalShort)[1:length(begNames)] <- begNames
+causalShort <- as.data.frame(causalShort)
+
+```
+
+# Associativist
+
+```{r}
+assocLong <- matrix(nrow=0,ncol=57)
+
+assocShort <- matrix(nrow=0,ncol=53)
+
+uIds <- unique(rawDfA$subID)
+
+colnames(rawDfA)[which(colnames(rawDfA)=="M1_IM"):(which(colnames(rawDfA)=="M1_IM")+22)]
+varnames <- c("IM", "Pos", "Neg", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability", "SO", "Simulate", "T.Y", "T.M", "D.D")
+
+  # uIds <- get(paste0("T",i,"s"))
+  # raw <- get(paste0("T",i,"raw"))
+
+  for(j in 1:length(uIds)){
+    subID <- uIds[j]
+    subNetUW <- get(paste0("subIGraph.",subID))
+    subNetW <- get(paste0("subIGraphW.",subID))
+    numMems <- sum(!is.na(memMat[memMat$subID==subID,2:(memMax+1) ]))
+    
+    tsubNetW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetW))))
+    tsubNetUW <- graph_from_adjacency_matrix(t(as.matrix(as_adjacency_matrix(subNetUW))))
+    
+    variables <- c("IM", "Val_1", "Val_2", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability", "SO", "Simulate", "Length_12", "Length_13", "Length_14")
+    for(v in variables){
+      aVar <- as.numeric(rawDfA[rawDfA$subID==subID, paste0("M",1:numMems,"_",v)])
+      assign(v,aVar)
+    }
+    
+    V(subNetUW)$IM <- IM
+    V(subNetUW)$Val_1 <- Val_1
+    V(subNetUW)$Val_2 <- Val_2
+    V(subNetUW)$Clear <- Clear
+    V(subNetUW)$Easy <- Easy
+    V(subNetUW)$Rep <- Rep
+    V(subNetUW)$Fund <- Fund
+    V(subNetUW)$Chan <- Chan
+    V(subNetUW)$Know <- Know
+    V(subNetUW)$Taught <- Taught
+    V(subNetUW)$Expect <- Expect
+    V(subNetUW)$Breadth <- Breadth
+    V(subNetUW)$Initiate <- Initiate
+    V(subNetUW)$Locus <- Locus
+    V(subNetUW)$Control <- Control
+    V(subNetUW)$Stability <- Stability
+    V(subNetUW)$SO <- SO
+    V(subNetUW)$Simulate <- Simulate
+    V(subNetUW)$Length_12 <- Length_12
+    V(subNetUW)$Length_13 <- Length_13
+    V(subNetUW)$Length_14 <- Length_14
+    
+    V(subNetW)$IM <- IM
+    V(subNetW)$Val_1 <- Val_1
+    V(subNetW)$Val_2 <- Val_2
+    V(subNetW)$Clear <- Clear
+    V(subNetW)$Easy <- Easy
+    V(subNetW)$Rep <- Rep
+    V(subNetW)$Fund <- Fund
+    V(subNetW)$Chan <- Chan
+    V(subNetW)$Know <- Know
+    V(subNetW)$Taught <- Taught
+    V(subNetW)$Expect <- Expect
+    V(subNetW)$Breadth <- Breadth
+    V(subNetW)$Initiate <- Initiate
+    V(subNetW)$Locus <- Locus
+    V(subNetW)$Control <- Control
+    V(subNetW)$Stability <- Stability
+    V(subNetW)$SO <- SO
+    V(subNetW)$Simulate <- Simulate
+    V(subNetW)$Length_12 <- Length_12
+    V(subNetW)$Length_13 <- Length_13
+    V(subNetW)$Length_14 <- Length_14
+    
+    subLong <- 
+      cbind(subID,
+          as_vector(memMat[memMat$subID==subID,2:(numMems+1)]),
+          seq(1,numMems),
+          degree(subNetUW),
+          strength(subNetW),
+          eigen_centrality(subNetUW)$vector,
+          eigen_centrality(subNetW)$vector,
+          hub_score(subNetUW)$vector,
+          hub_score(subNetW)$vector,
+          page_rank(subNetUW)$vector,
+          page_rank(subNetW)$vector,
+          page_rank(tsubNetUW)$vector,
+          page_rank(tsubNetW)$vector,
+          authority_score(subNetUW)$vector,
+          authority_score(subNetW)$vector,
+          IM,
+          Val_1,
+          Val_2,
+          Clear,
+          Easy,
+          Rep,
+          Fund,
+          Chan,
+          Know,
+          Taught,
+          Expect,
+          Breadth,
+          Initiate,
+          Locus,
+          Control,
+          Stability,
+          SO,
+          Simulate,
+          Length_12,
+          Length_13,
+          Length_14
+          )
+    
+    for(v in variables){
+     aVar <- unlist(lapply(1:numMems, function(x) computeNeighbors(subNetUW, x, v, "all"))) 
+      assign(paste0(v,"_neighs"),aVar)
+    }
+    
+    subLong <- cbind(subLong,
+          IM_neighs,
+          Val_1_neighs,
+          Val_2_neighs,
+          Clear_neighs,
+          Easy_neighs,
+          Rep_neighs,
+          Fund_neighs,
+          Chan_neighs,
+          Know_neighs,
+          Taught_neighs,
+          Expect_neighs,
+          Breadth_neighs,
+          Initiate_neighs,
+          Locus_neighs,
+          Control_neighs,
+          Stability_neighs,
+          SO_neighs,
+          Simulate_neighs,
+          Length_12_neighs,
+          Length_13_neighs,
+          Length_14_neighs
+    
+    )
+    
+    
+    
+    # identity to identity network total edges
+    idEdgT <- ecount(subNetUW)
+    # density
+    density <- edge_density(subNetUW)
+    # average distance
+    aveDist <- mean_distance(subNetUW)
+    # clustering coefficient
+    idTrans <- transitivity(subNetUW, "global")
+    # small worldness
+    # global efficiency
+    globEff <- brainGraph::efficiency(subNetUW, type = "global")
+    # Mean strength
+    meanStre <- mean(strength(subNetW))
+    # Sum strength
+    sumStre <- sum(strength(subNetW))
+    # Similarity mean
+    idSimGlob <- (similarity(subNetW, method = "dice"))%>% .[lower.tri(.)] %>% mean()
+    # Reciprocity
+    recip <- reciprocity(subNetW)
+    # Diameter
+    diam <- diameter(subNetW)
+    # Average Path Length (Unweighted)
+    apl <- average.path.length(subNetUW)
+    # Average Path Length (weighted)
+    aplW <- average.path.length(subNetW)
+    # Modularity (Unweighted)
+    modular <- modularityWT(subNetUW)
+    # Modularity (Weighted)
+    modularW <- modularityWT(subNetW)
+    # Compactness (Unweighted)
+    compact <- Compactness(subNetUW)
+    # Compactness (Weighted)
+    compactW <- Compactness(subNetW)
+    # Cohesion (Unweighted)
+    cohes <- cohesion(subNetUW)
+    # Cohesion (Weighted)
+    cohesW <- cohesion(subNetW)
+    # Centralization
+    centrDeg <- centr_degree((subNetUW))$centralization 
+    centrBet <- centr_betw((subNetUW))$centralization
+    centrClo <- centr_clo((subNetUW))$centralization
+    centrEig <- centr_eigen((subNetUW))$centralization
+    # Centralization (Weighted)
+    centrDegW <- centr_degree((subNetW))$centralization 
+    centrBetW <- centr_betw((subNetW))$centralization
+    centrCloW <- centr_clo((subNetW))$centralization
+    centrEigW <- centr_eigen((subNetW))$centralization
+    # Dominance/Variability
+    sdDeg <- sd(degree(subNetUW))      
+    sdBet <- sd(betweenness(subNetUW))
+    sdClo <- sd(closeness(subNetUW))
+    sdEig <- sd(evcent(subNetUW)$vector)
+    # Dominance/Variability (Weighted)
+    sdDegW <- sd(degree(subNetW))      
+    sdBetW <- sd(betweenness(subNetW))
+    sdCloW <- sd(closeness(subNetW))
+    sdEigW <- sd(evcent(subNetW)$vector)
+    
+    variables <- c("IM", "Val_1", "Val_2", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability", "SO")
+    # assortativity identification
+    homophs <- unlist(
+      lapply(variables, function(x) assortativityNA(subNetUW, as.numeric(
+      vertex_attr(subNetUW, x) +
+      rnorm(1, 0, .00001), 
+      directed=T
+      )))
+    )
+    names(homophs) <- paste0(variables,"_homoph")
+    
+    subShort <- c(subID,idEdgT,density,aveDist,idTrans,globEff, numMems, meanStre, sumStre, idSimGlob, recip, diam, apl, aplW, modular, modularW, compact, compactW, cohes, cohesW, centrDeg, centrBet, centrClo, centrEig, centrDegW, centrBetW, centrCloW, centrEigW, sdDeg, sdBet, sdClo, sdEig,  sdDegW, sdBetW, sdCloW, sdEigW, homophs)
+    
+    assocLong <- rbind(assocLong, subLong)
+    assocShort <- rbind(assocShort, subShort)
+  }
+
+assocLong <- as.data.frame(assocLong)
+begNames <- c("subID","memory","memCode","degree", "strength","eigen","eigenW","hub","hubW","page","pageW","pageOut","pageOutW","auth","authW")
+colnames(assocLong)[1:length(begNames)] <- begNames
+
+assocLong[4:ncol(assocLong)] <- apply(assocLong[4:ncol(assocLong)], 2, as.numeric)
+
+
+
+begNames <- c("subID","edgeTot","dense","aveDist","idTrans","globEff","numID",
+              "meanStre","sumStre","idSimGlob","recip","diam","apl","aplW",
+              "modular","modularW","compact","compactW","cohes","cohesW","centrDeg",
+              "centrBet","centrClo","centEig","centrDegW","centrBetW","centrCloW",
+              "centrEigW","sdDeg","sdBet","sdClo","sdEig","sdDegW","sdBetW","sdCloW","sdEigW",
+              paste0(variables,"_Homoph"))
+colnames(assocShort)[1:length(begNames)] <- begNames
+assocShort <- as.data.frame(assocShort)
+```
+
+
+# Convert Length to a single number
+
+```{r}
+convertLength <- function(Year, Month, Day){
+  Y <- (Year * 365) # Year to days
+  M <- (Month * 30.5) # Months to days
+  if(is.na(Y)){
+    Y<-0
+  }
+  if(is.na(M)){
+    M<-0
+  }
+  if(is.na(Day)){
+    Day<-0
+  }
+  Y + M + Day
+}
+
+for(i in 1:nrow(assocLong)){
+  assocLong$length[i] <- convertLength(assocLong$Length_12[i], assocLong$Length_13[i], assocLong$Length_14[i])
+  
+}
+assocLong$length[assocLong$length > (365*65)] <- NA # Remove outliers
+for(i in 1:nrow(causalLong)){
+  causalLong$length[i] <- convertLength(causalLong$Length_12[i], causalLong$Length_13[i], causalLong$Length_14[i])
+  
+}
+causalLong$length[causalLong$length > (365*65)] <- NA # Remove outliers
+```
+
+# Individual Differences
+
+# Need for Cognition
+
+```{r}
+NFCrevcols = c("NFC-6_3", "NFC-6_4")
+rawDf[ ,NFCrevcols] = 8 - rawDf[ ,NFCrevcols]
+ind1 <- grep("NFC-6_1", colnames(rawDf))
+ind1<-min(ind1)
+ind2<- grep("NFC-6_6", colnames(rawDf))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+rawDf$NFC = rowMeans(rawDf[, ind1:ind2], na.rm = TRUE)
+
+psych::alpha(rawDf[ind1:ind2])
+```
+# Self-Esteem
+
+```{r}
+# Reverse code Rosenberg Self-Esteem items
+SErevcols = c("RSE2", "RSE5", "RSE6", "RSE8", "RSE9")
+rawDf[ ,SErevcols] = 5 - rawDf[ ,SErevcols]
+ind1 <- grep("^RSE1$", colnames(rawDf))
+ind1<-min(ind1)
+ind2<- grep("^RSE10$", colnames(rawDf))
+ind2<-max(ind2)
+# Compute scores for Rosenberg Self-Esteem
+rawDf$SE = rowMeans(rawDf[, ind1:ind2], na.rm = TRUE)
+rawDf$SE <- 5 - rawDf$SE
+psych::alpha(rawDf[ind1:ind2])
+```
+
+## Self-Concept Clarity
+
+```{r}
+# Reverse code Self-Concept Clarity Scale items
+SCC_revcols = c("SCC1", "SCC2", "SCC3", "SCC4", "SCC5", "SCC7", 
+                 "SCC8", "SCC9", "SCC10", "SCC12")
+rawDf[ ,SCC_revcols] = 6 - rawDf[ ,SCC_revcols]
+ind1 <- grep("SCC1", colnames(rawDf))
+ind1<-min(ind1)
+ind2<- grep("SCC12", colnames(rawDf))
+ind2<-max(ind2)
+# Compute score for Self-Concept Clarity Scale items
+rawDf$SCC = rowMeans(rawDf[,ind1:ind2], na.rm = TRUE)
+
+psych::alpha(rawDf[ind1:ind2])
+```
+
+```{r}
+DSrevcols = c("DS-S_1", "DS-S_5", "DS-S_6", "DS-S_7", "DS-S_9", "DS-S_14")
+rawDf[ ,DSrevcols] = 8 - rawDf[ ,DSrevcols]
+ind1 <- grep("DS-S_1", colnames(rawDf))
+ind1<-min(ind1)
+ind2<- grep("DS-S_14", colnames(rawDf))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+rawDf$DS = rowMeans(rawDf[, ind1:ind2], na.rm = TRUE)
+
+psych::alpha(rawDf[ind1:ind2])
+```
+
+```{r}
+CESDrevcols = c("CESD4", "CESD8", "CESD12", "CESD16", "DS-S_9", "DS-S_14")
+rawDf[ ,CESDrevcols] = 5 - rawDf[ ,CESDrevcols]
+ind1 <- grep("CESD1", colnames(rawDf))
+ind1<-min(ind1)
+ind2<- grep("CESD20", colnames(rawDf))
+ind2<-max(ind2)
+# Compute scores for Need for Cog
+rawDf$CESD = rowMeans(rawDf[, ind1:ind2], na.rm = TRUE)
+psych::alpha(rawDf[ind1:ind2])
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Principal component analysis
+
+for(i in 1:2){
+  
+  if(i == 1){
+    fullLong <- causalLong
+    fullShort <- causalShort
+  }else if(i == 2){
+    fullLong <- assocLong
+    fullShort <- assocShort
+  }
+
+cur<-fullLong[, c("Fund", "Rep","Chan")]
+PCAall<- prcomp(na.omit(cur),
+             center = TRUE,
+            scale. = TRUE)
+
+fullLong$PCAimp[!is.na(fullLong$Fund) & !is.na(fullLong$Rep) & !is.na(fullLong$Chan)] <- PCAall$x[,1]
+
+cur<-fullLong[, c("Rep","Fund","Expect","Chan","Know","Taught")]
+PCAall<- prcomp(na.omit(cur),
+             center = TRUE,
+            scale. = TRUE)
+
+fullLong <- fullLong %>% rename(positive = Val_1, negative = Val_2)
+
+indDiffs <- rawDf %>% select(subID, CESD, DS, SE, SCC, NFC)
+fullLong$subID <- as.numeric(fullLong$subID)
+fullShort <- fullShort %>% inner_join(indDiffs, by="subID")
+
+library(vader)
+vo <- vader_df(fullLong$memory)
+fullLong <- cbind(fullLong, vad_pos = vo$pos, vad_neg = vo$neg, vad_comp = vo$compound)
+
+library(stringr)
+fullLong$nwords <- str_count(fullLong$memory, "\\w+")
+
+fullShort <- fullLong %>%
+  group_by(subID) %>%
+  summarise(vad_posAg = mean(vad_pos, na.rm=T),
+            vad_negAg = mean(vad_neg, na.rm=T),
+            vad_compAg = mean(vad_comp, na.rm=T)) %>% full_join(fullShort, by = "subID")
+
+  if(i == 1){
+    assign("causalLong",fullLong)
+    assign("causalShort",fullShort)
+  }else if(i == 2){
+    assign("assocLong",fullLong)
+    assign("assocShort",fullShort)
+  }
+
+}
+```
+
+
+```{r}
+fullSimDf <- data.frame()
+
+for(i in 1:2){
+  
+  
+  
+  if(i == 1){
+    fullLong <- causalLong
+    fullShort <- causalShort
+  }else if(i == 2){
+    fullLong <- assocLong
+    fullShort <- assocShort
+  }
+
+uIds <- unique(fullLong$subID)
+
+#fullSimDf <- matrix(ncol=6, nrow=8*length(uIds))
+
+    dvars <- c("IM", "positive", "negative", "Clear", "Easy", "Rep", "Fund", "Chan", "Know", "Taught", "Expect", "Breadth", "Initiate", "Locus", "Control", "Stability")
+
+for(i in uIds){
+    #subDf <- rawFirst[rawFirst$id==i,]
+    subDf <- fullLong[fullLong$subID==i,]
+  
+    # mem graph
+    curGraph <- get(paste0("subIGraph.",i))
+    
+    # weighted mem graph
+    curGraphW <- get(paste0("subIGraphW.",i))
+    
+    sim=similarity.dice(curGraph)
+    simVect=sim[lower.tri(sim)==T]
+    # if(length(simVect)<28){
+    #   break
+    # }
+    
+    simW=similarity.dice(curGraphW)
+    simWVect=sim[lower.tri(simW)==T]
+    # if(length(simVectIT)<28){
+    #   break
+    # }
+    
+    dmat <- matrix(ncol=length(dvars),nrow=length(simVect))
+    iter <- 1
+    for(d in 1:length(dvars) ){
+    Vect <- as.vector(dist(subDf[dvars[d]]))
+    dmat[,d] <- Vect
+    iter <- iter + 1
+    # if(length(posVect)<28){
+    #   break
+    # }
+    }
+
+    
+    curSimDf <- cbind(subID = rep(i,length(simVect)), Sim = simVect, dmat)
+    
+    
+    # if(any(apply(curSimDf, 2, length)!=28)){
+    #   break
+    # }
+    
+    fullSimDf <- rbind(fullSimDf, curSimDf)
+    
+}
+}
+colnames(fullSimDf) <- c("subID", "Sim", dvars)
+```
+
+```{r}
+RET <- rawDf %>% select(starts_with("RankEpisTrans_"))
+RPT <- rawDf %>% select(starts_with("RankPersTrans_"))
+subIDs <- rawDf$subID
+x <- c("subID","Rank","RET","RPT")
+rankMat <- matrix(nrow=length(subIDs)*3,ncol=4)
+n <- 1
+
+for(i in 1:nrow(rawDf)){
+  for(j in 1:3){
+    curRET <- which(RET[i,]==j)
+    curRPT <- which(RPT[i,]==j)
+    if(length(curRET)==0){
+      curRET <- NA
+    }
+    if(length(curRPT)==0){
+      curRPT <- NA
+    }
+    rankMat[n, ] <- c(subIDs[i], j, curRET, curRPT)
+    n <- n+1
+  }
+}
+colnames(rankMat) <- x
+rankDf <- as.data.frame(rankMat)
+```
+
+
+
+```{r}
+arrow::write_parquet(causalLong, here("Study 3/Data/longEpMNetC3.parquet"))
+arrow::write_parquet(assocLong, here("Study 3/Data/longEpMNetA3.parquet"))
+arrow::write_parquet(causalShort,here("Study 3/Data/shortEpMNetC3.parquet"))
+arrow::write_parquet(assocShort,here("Study 3/Data/shortEpMNetA3.parquet"))
+arrow::write_parquet(fullSimDf, here("Study 3/Data/simEpMNet3.parquet"))
+arrow::write_parquet(rankDf, here("Study 3/Data/rankings3.parquet"))
+dir.create("/Volumes/Research Project/Episodic Memory Network/Study 3/workspace/")
+save.image("/Volumes/Research Project/Episodic Memory Network/Study 3/workspace/idmWorkspace.RData")
+```
+
+
+
+
