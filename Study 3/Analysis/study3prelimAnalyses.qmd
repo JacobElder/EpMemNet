@@ -54,8 +54,10 @@ fullSimDf <- fullData %>% select(subID, Condition) %>% right_join(fullSimDf, by 
 
 ## Importance
 
+No evidence for differences in associativist vs. outdegree in predicting importance to me
+
 ```{r}
-m<-lmer( scale(IM) ~  scale(degree)*Condition*scale(positive) + numID + ( scale(degree) | subID), data=fullData)
+m<-lmer( scale(IM) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
 summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
@@ -65,6 +67,8 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
 ## Controllability
+
+Higher outdegree predicts less controllability, while there's no association with associativist degrees.
 
 ```{r}
 m<-lmer( scale(Control) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
@@ -136,7 +140,23 @@ summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
+## Initiation
+
+Higher outdegree more initiated by others
+
+```{r}
+m<-lmer( scale(Initiate) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
+summary(m)
+ggpredict(m, c("degree","Condition")) %>% plot()
+
+m<-lmer( scale(Initiate) ~  scale(strength)*Condition + numID + ( scale(strength) | subID), data=fullData)
+summary(m)
+ggpredict(m, c("strength","Condition")) %>% plot()
+```
+
 ## Easy to Recall
+
+Associativist degrees strongly positively predicts how easy to recall a memory is, while outdegree predicts less easy to recall.
 
 ```{r}
 m<-lmer( scale(Easy) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
@@ -149,6 +169,8 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
 ## Clear
+
+Associativist degrees positively predicts how clearly defined a memory is, more so than outdegree.
 
 ```{r}
 m<-lmer( scale(Clear) ~  scale(degree)*Condition + numID  + ( scale(degree) | subID), data=fullData)
@@ -176,23 +198,25 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ```{r}
 m<-glmer( degree ~  Simulate*Condition + numID + ( Simulate | subID), data=fullData, family = poisson())
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Simulate","Condition")) %>% plot()
 
 m<-lmer( strength ~  Simulate*Condition + numID + ( Simulate | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Simulate","Condition")) %>% plot()
 ```
 
 ## Fundamental
 
+Associativist and outdegree predict how fundamental a memory is, pretty much same
+
 ```{r}
 m<-lmer( scale(Fund) ~  scale(degree) * Condition + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(Fund) ~  scale(strength) * Condition + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
@@ -200,11 +224,11 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(Rep) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(Rep) ~  scale(strength)*Condition + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
@@ -212,23 +236,25 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(Chan) ~  scale(degree) * Condition  + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(Chan) ~  scale(strength) * Condition  + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
 ## Positive
 
+Associativist more strongly predicts how positive a memory is, moreso than outdegree
+
 ```{r}
 m<-lmer( scale(positive) ~  scale(degree) * Condition  + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(positive) ~  scale(strength) * Condition  + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
@@ -292,6 +318,8 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ## Controllability
 
+Indegree positively predicts how controllable a memory is, moreso than associativist
+
 ```{r}
 m<-lmer( scale(Control) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
 summary(m)
@@ -362,6 +390,18 @@ summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
+## Initiation
+
+```{r}
+m<-lmer( scale(Initiate) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
+summary(m)
+ggpredict(m, c("degree","Condition")) %>% plot()
+
+m<-lmer( scale(Initiate) ~  scale(strength)*Condition + numID + ( scale(strength) | subID), data=fullData)
+summary(m)
+ggpredict(m, c("strength","Condition")) %>% plot()
+```
+
 ## Easy to Recall
 
 ```{r}
@@ -402,23 +442,25 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ```{r}
 m<-glmer( degree ~  Simulate*Condition + numID + ( Simulate | subID), data=fullData, family = poisson())
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Simulate","Condition")) %>% plot()
 
 m<-lmer( strength ~  Simulate*Condition + numID + ( Simulate | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Simulate","Condition")) %>% plot()
 ```
 
 ## Fundamental
 
+Associativist predicts how fundamental a memory is, much more strongly than indegree
+
 ```{r}
 m<-lmer( scale(Fund) ~  scale(degree) * Condition + numID + scale(positive) + scale(negative) + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(Fund) ~  scale(strength) * Condition + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
@@ -426,11 +468,11 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(Rep) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(Rep) ~  scale(strength)*Condition + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
@@ -448,13 +490,15 @@ ggpredict(m, c("strength","Condition")) %>% plot()
 
 ## Positive
 
+Indegree predicts how positive a memory is more strongly than associativist
+
 ```{r}
 m<-lmer( scale(positive) ~  scale(degree) * Condition  + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("degree","Condition")) %>% plot()
 
 m<-lmer( scale(positive) ~  scale(strength) * Condition  + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
@@ -470,58 +514,13 @@ tbl_regression(m) %>% as_gt()
 ggpredict(m, c("strength","Condition")) %>% plot()
 ```
 
-```{r}
-fullData <- data.frame(
-  subID=c(CData$subID,AData$subID), 
-           Breadth=c(CData$Breadth, AData$Breadth),
-           Deg=c(CData$outdegree, AData$degree),
-           numID=c(CData$numID, AData$numID),
-           Condition=c(rep("C",nrow(CData)), rep("A",nrow(AData))) )
-
-m<-lmer( scale(Breadth) ~  scale(Deg)*Condition + numID + ( scale(Deg) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-```{r}
-fullData <- data.frame(
-  subID=c(CData$subID,AData$subID), 
-           Breadth=c(CData$Breadth, AData$Breadth),
-           Streng=c(CData$strengthOut, AData$strength),
-           numID=c(CData$numID, AData$numID),
-           Condition=c(rep("C",nrow(CData)), rep("A",nrow(AData))) )
-
-m<-lmer( scale(Breadth) ~  scale(Streng)*Condition + numID + ( scale(Streng) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-```{r}
-fullData <- data.frame(
-  subID=c(CData$subID,AData$subID), 
-           Chan=c(CData$Chan, AData$Chan),
-           Deg=c(CData$outdegree, AData$degree),
-           numID=c(CData$numID, AData$numID),
-           Condition=c(rep("C",nrow(CData)), rep("A",nrow(AData))) )
-m<-lmer( scale(Chan) ~  scale(Deg)*Condition + numID + ( scale(Deg) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-```{r}
-m<-lmer( scale(Initiate) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-```{r}
-m<-lmer( scale(Initiate) ~  scale(strength)*Condition + numID + ( scale(strength) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
 # Similar Traits Predict Similar Ratings
 
 ## Knowability
 
 ```{r}
 m<-lmer( scale(Know) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
@@ -529,7 +528,7 @@ ggpredict(m, c("Sim","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(positive) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
@@ -537,21 +536,23 @@ ggpredict(m, c("Sim","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(negative) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
+ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
 ### Easy
 
 ```{r}
 m<-lmer( scale(Easy) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
+ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
 ### Fundamental
 
 ```{r}
 m<-lmer( scale(Fund) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
@@ -559,7 +560,7 @@ ggpredict(m, c("Sim","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(Chan) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
@@ -567,7 +568,7 @@ ggpredict(m, c("Sim","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(Taught) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
@@ -575,192 +576,24 @@ ggpredict(m, c("Sim","Condition")) %>% plot()
 
 ```{r}
 m<-lmer( scale(Expect) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
+
+### Importance to Me
 
 ```{r}
 m<-lmer( scale(IM) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
+
+### Representative
 
 ```{r}
 m<-lmer( scale(Rep) ~  scale(Sim)*Condition + ( scale(Sim) | subID), data=fullSimDf)
-tbl_regression(m) %>% as_gt()
+summary(m)
 ggpredict(m, c("Sim","Condition")) %>% plot()
 ```
 
-## 10.) broad traits have more outdegree
-
-Supported
-
-```{r}
-m<-lmer( scale(Breadth) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Breadth) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## 9.) Outdegree predicts not knowing what experience would be like. (epistemic)
-
-More indegree that outdegree actually
-
-```{r}
-m<-lmer( scale(Know) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Know) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## 10.) Outdegree predicts showing/teaching something new.
-
-```{r}
-m<-lmer( scale(Taught) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Taught) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## 11.) We do not have strong predictions about controllability.
-
-Indegree predicts controllability
-
-```{r}
-m<-lmer( scale(Control) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Control) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## 12.) Outdegree central traits will be ranked more epistemically and personally transformative.
-
-```{r}
-rankDataRET <- merge(rankData, fullData, by.x = c("subID","RET"), by.y=c("subID","memCode"),all=T)
-rankDataRET$Rank[is.na(rankDataRET$Rank)] <- "Rest"
-summedRET <- Rmisc::summarySE(measurevar = "degree", groupvars = c("Rank","Condition"), na.rm=T, data= rankDataRET)
-
-ggplot(data=summedRET, aes(x=Rank, y=outdegree)) +
-  geom_bar(stat="identity", fill="steelblue") + ggtitle("Epistemic Transformation Rankings")
-
-rankDataRPT <- merge(rankData, fullData, by.x = c("subID","RPT"), by.y=c("subID","memCode"),all=T)
-rankDataRPT$Rank[is.na(rankDataRPT$Rank)] <- "Rest"
-summedRPT <- Rmisc::summarySE(measurevar = "degree", groupvars = c("Rank","Condition"), na.rm=T, data= rankDataRPT)
-
-ggplot(data=summedRPT, aes(x=Rank, y=degree, color=Condition)) +
-  geom_bar(stat="identity", fill="steelblue") + ggtitle("Personal Transformation Rankings")
-
-ggplot(summedRPT, aes(x=Rank, y=degree, fill=Condition)) +
-    geom_bar(stat='identity', position='dodge')
-```
-
-## 13.) Outdegree predicts how surprising/unexpected
-
-Stronger effect for indegree actually
-
-```{r}
-m<-lmer( scale(Expect) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Expect) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## 14.) Outdegree predicts more stable memories.
-
-Lower indegree technically predicts more stability but neither is a particularly strong effect.
-
-```{r}
-m<-lmer( scale(Stability) ~  scale(degree)*Condition + numID + ( scale(degree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Stability) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## 15.) Outdegree predicts memories that were more caused by self than others, whereas indegree predicts memories more caused by others than self.
-
-Interesting dissociation... Lower indegree, more social/others. Higher outdegree more self/less others.
-
-```{r}
-fullData$SOf <- ordered(fullData$SO)
-ordinal_model <- clmm(SOf ~ scale(outdegree) + scale(indegree) + numID +
-                        ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-summary(ordinal_model)
-
-ordinal_model <- clmm(SOf ~ scale(strengthIn) + scale(strengthOut) + numID +
-                        ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-summary(ordinal_model)
-```
-
-## 16.) Outdegree predicts events within or for someone, rather than pertaining to others.
-
-Indegree predicts pertaining to others
-
-```{r}
-m<-lmer( scale(Locus) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Locus) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-# Exploratory:
-
-## Self-Initiated
-
-Higher outdegree more self-initiated, higher indegree more other initiated
-
-```{r}
-m<-lmer( scale(Initiate) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-
-m<-lmer( scale(Initiate) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-```
-
-## Simulation on Indegree
-
-Memories you want to remove are lower in indegree
-
-```{r}
-contrasts(fullLong$Simulate) <- contr.sum(3)
-m<-glmer( indegree ~  Simulate + numID + ( Simulate | subID), data=fullData, family=poisson())
-tbl_regression(m) %>% as_gt()
-ggpredict(m, c("Simulate")) %>% plot()
-```
-
-## Simulation on outdegree
-
-Memories you want to remove are lower in outdegree
-
-```{r}
-contrasts(fullLong$Simulate) <- contr.sum(3)
-m<-glmer( outdegree ~  Simulate + numID + ( Simulate | subID), data=fullData, family=poisson())
-tbl_regression(m) %>% as_gt()
-ggpredict(m, c("Simulate")) %>% plot()
-```
-
-### Simulate \* Positive on Outdegree
-
-If you want to remove a memory and it's higher outdegree, it's more positive. If you want to substitute a memory and it's higher outdegree, it's less positive.
-
-```{r}
-m<-lmer( positive ~  outdegree*Simulate + numID + ( Simulate | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-ggpredict(m, c("outdegree","Simulate")) %>% plot()
-```
-
-### Simulate \* Indegree on Know
-
-If it's a memory you want to substitute and it has more inward causes, it was less knowable prior to happening.
-
-```{r}
-m<-lmer( Know ~  indegree*Simulate + numID + ( Simulate | subID), data=fullData)
-tbl_regression(m) %>% as_gt()
-ggpredict(m, c("indegree","Simulate")) %>% plot()
-```
+## 
