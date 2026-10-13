@@ -1,0 +1,359 @@
+---
+title: "study2finalAnalyses"
+format: html
+editor: visual
+---
+
+```{r}
+library(groundhog)
+
+pkgs <-  c("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary")
+groundhog.day <- '2022-07-25'
+#groundhog.library(pkgs, groundhog.day)
+pacman::p_load("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary","ordinal","r2glmm")
+i_am("EpMemNet.Rproj")
+
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
+
+fullLong <- arrow::read_parquet(here("Study 2","Data", "longEpMNet2.parquet"))
+fullShort <- arrow::read_parquet(here("Study 2","Data","shortEpMNet2.parquet"))
+rankData <- arrow::read_parquet(here("Study 2","Data","rankings2.parquet"))
+fullLong$subID <- as.numeric(fullLong$subID)
+fullLong$Simulate <- as.factor(fullLong$Simulate)
+levels(fullLong$Simulate) <- list("Keep"  = "1", "Remove" = "2", "Substitute" = "3")
+
+fullSimDf <- arrow::read_parquet(here("Study 2","Data", "simEpMNet2.parquet"))
+fullData <- fullLong %>% full_join(fullShort, by = c("subID"))
+fullData$subID <- as.factor(fullData$subID)
+
+# pal1 <-n colorRampPalette(brewer.pal(11,"BrBG"))(227)
+pal <- colorRampPalette(wes_palette("Zissou1", 5))(length(unique(fullLong$subID)))
+```
+
+# Pre-Registered
+
+## 1.) Indegree pos assoc with positivity. Indegree neg assoc with negativity.
+
+```{r}
+m<-lmer( scale(positive) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(vad_pos) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(negative) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+```{r}
+m<-lmer( scale(vad_pos) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+r2beta(m)
+```
+
+```{r}
+m<-lmer( scale(vad_pos) ~  scale(strengthOut) + scale(strengthIn) + numID + scale(length) + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 2.) Weighted measures stronger than unweighted measures.
+
+## Tested throughout
+
+3.) Outdegree predicts importance to me, (b) more than indegree
+
+not really supported. pretty similar effects
+
+```{r}
+m<-lmer( scale(IM) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(IM) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 4.) Outdegree predicts clearly defined (b) more than indegree
+
+not supported. indegree is stronger predictor here
+
+```{r}
+m<-lmer( scale(Clear) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Clear) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 5.) Outdegree predicts easy to recall (b) more than indegree
+
+```{r}
+m<-lmer( scale(Easy) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Easy) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 6.)  Outdegree predicts how representative memory is (b) more than indegree
+
+They are both predictive but outdegree stronger
+
+```{r}
+m<-lmer( scale(Rep) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Rep) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 7.) Outdegree predicts being fundamental to who someone is.
+
+Much stronger for outdegree
+
+```{r}
+m<-lmer( scale(Fund) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Fund) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 8.) Outdegree predicts changing someone.
+
+Stronger for outdegree
+
+```{r}
+m<-lmer( scale(Chan) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Chan) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 9.) similarity traits predicts similar ratings
+
+### Positivity
+
+yup
+
+```{r}
+m<-lmer( scale(positive) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+### Negative
+
+```{r}
+m<-lmer( scale(negative) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+### Easy
+
+```{r}
+m<-lmer( scale(Easy) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+### Fundamental
+
+```{r}
+m<-lmer( scale(Fund) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+### Changed Me
+
+```{r}
+m<-lmer( scale(Chan) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+### Taught Me
+
+```{r}
+m<-lmer( scale(Taught) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+### Expected
+
+```{r}
+m<-lmer( scale(Expect) ~  scale(Sim) + ( scale(Sim) | subID), data=fullSimDf)
+tbl_regression(m) %>% as_gt()
+```
+
+## 10.) broad traits have more outdegree
+
+Supported
+
+```{r}
+m<-lmer( scale(Breadth) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Breadth) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 9.) Outdegree predicts not knowing what experience would be like. (epistemic)
+
+More indegree that outdegree actually
+
+```{r}
+m<-lmer( scale(Know) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Know) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 10.) Outdegree predicts showing/teaching something new.
+
+```{r}
+m<-lmer( scale(Taught) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Taught) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 11.) We do not have strong predictions about controllability.
+
+Indegree predicts controllability
+
+```{r}
+m<-lmer( scale(Control) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Control) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 12.) Outdegree central traits will be ranked more epistemically and personally transformative.
+
+```{r}
+rankDataRET <- merge(rankData, fullLong, by.x = c("subID","RET"), by.y=c("subID","memCode"),all=T)
+rankDataRET$Rank[is.na(rankDataRET$Rank)] <- "Rest"
+summedRET <- Rmisc::summarySE(measurevar = "outdegree", groupvars = "Rank", na.rm=T, data= rankDataRET)
+
+ggplot(data=summedRET, aes(x=Rank, y=outdegree)) +
+  geom_bar(stat="identity", fill="steelblue") + ggtitle("Epistemic Transformation Rankings")
+
+rankDataRPT <- merge(rankData, fullLong, by.x = c("subID","RPT"), by.y=c("subID","memCode"),all=T)
+rankDataRPT$Rank[is.na(rankDataRPT$Rank)] <- "Rest"
+summedRPT <- Rmisc::summarySE(measurevar = "outdegree", groupvars = "Rank", na.rm=T, data= rankDataRPT)
+
+ggplot(data=summedRPT, aes(x=Rank, y=outdegree)) +
+  geom_bar(stat="identity", fill="steelblue") + ggtitle("Personal Transformation Rankings")
+```
+
+## 13.) Outdegree predicts how surprising/unexpected
+
+Stronger effect for indegree actually
+
+```{r}
+m<-lmer( scale(Expect) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Expect) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 14.) Outdegree predicts more stable memories.
+
+Lower indegree technically predicts more stability but neither is a particularly strong effect.
+
+```{r}
+m<-lmer( scale(Stability) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Stability) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## 15.) Outdegree predicts memories that were more caused by self than others, whereas indegree predicts memories more caused by others than self.
+
+Interesting dissociation... Lower indegree, more social/others. Higher outdegree more self/less others.
+
+```{r}
+fullData$SOf <- ordered(fullData$SO)
+ordinal_model <- clmm(SOf ~ scale(outdegree) + scale(indegree) + numID +
+                        ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+summary(ordinal_model)
+
+ordinal_model <- clmm(SOf ~ scale(strengthIn) + scale(strengthOut) + numID +
+                        ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+summary(ordinal_model)
+```
+
+## 16.) Outdegree predicts events within or for someone, rather than pertaining to others.
+
+Indegree predicts pertaining to others
+
+```{r}
+m<-lmer( scale(Locus) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Locus) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+# Exploratory: 
+
+## Self-Initiated
+
+Higher outdegree more self-initiated, higher indegree more other initiated
+
+```{r}
+m<-lmer( scale(Initiate) ~  scale(outdegree) + scale(indegree) + numID + ( scale(outdegree) + scale(indegree) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+
+m<-lmer( scale(Initiate) ~  scale(strengthOut) + scale(strengthIn) + numID + ( scale(strengthOut) + scale(strengthIn) | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+```
+
+## Simulation on Indegree
+
+Memories you want to remove are lower in indegree
+
+```{r}
+contrasts(fullLong$Simulate) <- contr.sum(3)
+m<-glmer( indegree ~  Simulate + numID + ( Simulate | subID), data=fullData, family=poisson())
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("Simulate")) %>% plot()
+```
+
+## Simulation on outdegree
+
+Memories you want to remove are lower in outdegree
+
+```{r}
+contrasts(fullLong$Simulate) <- contr.sum(3)
+m<-glmer( outdegree ~  Simulate + numID + ( Simulate | subID), data=fullData, family=poisson())
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("Simulate")) %>% plot()
+```
+
+### Simulate \* Positive on Outdegree
+
+If you want to remove a memory and it's higher outdegree, it's more positive. If you want to substitute a memory and it's higher outdegree, it's less positive.
+
+```{r}
+m<-lmer( positive ~  outdegree*Simulate + numID + ( Simulate | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("outdegree","Simulate")) %>% plot()
+```
+
+### Simulate \* Indegree on Know
+
+If it's a memory you want to substitute and it has more inward causes, it was less knowable prior to happening.
+
+```{r}
+m<-lmer( Know ~  indegree*Simulate + numID + ( Simulate | subID), data=fullData)
+tbl_regression(m) %>% as_gt()
+ggpredict(m, c("indegree","Simulate")) %>% plot()
+```

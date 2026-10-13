@@ -1,0 +1,276 @@
+---
+title: "indDiffs"
+format: html
+editor: visual
+embed-resources: true
+---
+
+```{r}
+pacman::p_load("tidyverse","here", "lmerTest", "sjPlot","broom.mixed", "kableExtra", "ggeffects", "gt", "brms", "bayestestR","ggdist", "pheatmap", "heatmaply","pheatmap","gplots","RColorBrewer", "tm", "wordcloud", "psych", "wesanderson","patchwork", "broom.mixed", "dplyr", "gtsummary","ordinal","r2glmm")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/corToOne.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/plotCommAxes.R")
+devtools::source_url("https://raw.githubusercontent.com/JacobElder/MiscellaneousR/master/named.effects.ref.R")
+
+here::i_am("Combined/indDiffs.qmd")
+```
+
+```{r}
+fullShort1 <- arrow::read_parquet(here("Study 1","Data","shortEpMNet.parquet"))
+fullShort2 <- arrow::read_parquet(here("Study 2","Data","shortEpMNet2.parquet"))
+fullShort3 <- arrow::read_parquet(here("Study 3","Data","shortEpMNetC3.parquet"))
+
+fullShort1[sapply(fullShort1, is.infinite)] <- NA
+fullShort2[sapply(fullShort2, is.infinite)] <- NA
+fullShort3[sapply(fullShort3, is.infinite)] <- NA
+```
+
+# Number of Identities
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(numID, MAIA:NFC) %>% corToOne(., "numID")
+fullShort1 %>% select(numID, MAIA:NFC) %>% plotCorToOne(., "numID")
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(numID, CESD:NFC) %>% corToOne(., "numID")
+fullShort2 %>% select(numID, CESD:NFC) %>% plotCorToOne(., "numID")
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(numID, CESD:NFC) %>% corToOne(., "numID")
+fullShort3 %>% select(numID, CESD:NFC) %>% plotCorToOne(., "numID")
+```
+
+# Density
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(dense, MAIA:NFC) %>% corToOne(., "dense")
+fullShort1 %>% select(dense, MAIA:NFC) %>% plotCorToOne(., "dense")
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(dense, CESD:NFC) %>% corToOne(., "dense")
+fullShort2 %>% select(dense, CESD:NFC) %>% plotCorToOne(., "dense")
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(dense, CESD:NFC) %>% corToOne(., "dense")
+fullShort3 %>% select(dense, CESD:NFC) %>% plotCorToOne(., "dense")
+```
+
+# Average Distance
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(aveDist, MAIA:NFC) %>% corToOne(., "aveDist")
+fullShort1 %>% select(aveDist, MAIA:NFC) %>% plotCorToOne(., "aveDist")
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(aveDist, CESD:NFC) %>% corToOne(., "aveDist")
+fullShort2 %>% select(aveDist, CESD:NFC) %>% plotCorToOne(., "aveDist")
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(aveDist, CESD:NFC) %>% corToOne(., "aveDist")
+fullShort3 %>% select(aveDist, CESD:NFC) %>% plotCorToOne(., "aveDist")
+```
+
+# Positivity Homophily
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(Val_1_Homoph, MAIA:NFC) %>% corToOne(., "Val_1_Homoph")
+fullShort1 %>% select(Val_1_Homoph, MAIA:NFC) %>% plotCorToOne(., "Val_1_Homoph") 
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(Val_1_Homoph, CESD:NFC) %>% corToOne(., "Val_1_Homoph")
+fullShort2 %>% select(Val_1_Homoph, CESD:NFC) %>% plotCorToOne(., "Val_1_Homoph") 
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(Val_1_Homoph, CESD:NFC) %>% corToOne(., "Val_1_Homoph")
+fullShort3 %>% select(Val_1_Homoph, CESD:NFC) %>% plotCorToOne(., "Val_1_Homoph") 
+```
+
+# Negativity Homophily
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(Val_2_Homoph, MAIA:NFC) %>% corToOne(., "Val_2_Homoph")
+fullShort1 %>% select(Val_2_Homoph, MAIA:NFC) %>% plotCorToOne(., "Val_2_Homoph") 
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(Val_2_Homoph, CESD:NFC) %>% corToOne(., "Val_2_Homoph")
+fullShort2 %>% select(Val_2_Homoph, CESD:NFC) %>% plotCorToOne(., "Val_2_Homoph") 
+```
+
+```{r}
+fullShort3 %>% select(Val_2_Homoph, CESD:NFC) %>% corToOne(., "Val_2_Homoph")
+fullShort3 %>% select(Val_2_Homoph, CESD:NFC) %>% plotCorToOne(., "Val_2_Homoph") 
+```
+
+# Fundamental Homophily
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(Fund_Homoph, MAIA:NFC) %>% corToOne(., "Fund_Homoph")
+fullShort1 %>% select(Fund_Homoph, MAIA:NFC) %>% plotCorToOne(., "Fund_Homoph")
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(Fund_Homoph, CESD:NFC) %>% corToOne(., "Fund_Homoph")
+fullShort2 %>% select(Fund_Homoph, CESD:NFC) %>% plotCorToOne(., "Fund_Homoph")
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(Fund_Homoph, CESD:NFC) %>% corToOne(., "Fund_Homoph")
+fullShort3 %>% select(Fund_Homoph, CESD:NFC) %>% plotCorToOne(., "Fund_Homoph")
+```
+
+# Change Homophily
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(Chan_Homoph, MAIA:NFC) %>% corToOne(., "Chan_Homoph")
+fullShort1 %>% select(Chan_Homoph, MAIA:NFC) %>% plotCorToOne(., "Chan_Homoph")
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(Chan_Homoph, CESD:NFC) %>% corToOne(., "Chan_Homoph")
+fullShort2 %>% select(Chan_Homoph, CESD:NFC) %>% plotCorToOne(., "Chan_Homoph")
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(Chan_Homoph, CESD:NFC) %>% corToOne(., "Chan_Homoph")
+fullShort3 %>% select(Chan_Homoph, CESD:NFC) %>% plotCorToOne(., "Chan_Homoph")
+```
+
+# Reciprocity
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(recip, MAIA:NFC) %>% corToOne(., "recip")
+fullShort1 %>% select(recip, MAIA:NFC) %>% plotCorToOne(., "recip") 
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(recip, CESD:NFC) %>% corToOne(., "recip")
+fullShort2 %>% select(recip, CESD:NFC) %>% plotCorToOne(., "recip") 
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(recip, CESD:NFC) %>% corToOne(., "recip")
+fullShort3 %>% select(recip, CESD:NFC) %>% plotCorToOne(., "recip") 
+```
+
+# Cohesive
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(cohes, MAIA:NFC) %>% corToOne(., "cohes")
+fullShort1 %>% select(cohes, MAIA:NFC) %>% plotCorToOne(., "cohes") 
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(cohes, CESD:NFC) %>% corToOne(., "cohes")
+fullShort2 %>% select(cohes, CESD:NFC) %>% plotCorToOne(., "cohes") 
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(cohes, CESD:NFC) %>% corToOne(., "cohes")
+fullShort3 %>% select(cohes, CESD:NFC) %>% plotCorToOne(., "cohes") 
+```
+
+# Modularity
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(modular, MAIA:NFC) %>% corToOne(., "modular")
+fullShort1 %>% select(modular, MAIA:NFC) %>% plotCorToOne(., "modular")
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(modular, CESD:NFC) %>% corToOne(., "modular")
+fullShort2 %>% select(modular, CESD:NFC) %>% plotCorToOne(., "modular")
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(modular, CESD:NFC) %>% corToOne(., "modular")
+fullShort3 %>% select(modular, CESD:NFC) %>% plotCorToOne(., "modular")
+```
+
+# Standard Deviation of Degrees
+
+## Study 1
+
+```{r}
+fullShort1 %>% select(sdDeg, MAIA:NFC) %>% corToOne(., "sdDeg")
+fullShort1 %>% select(sdDeg, MAIA:NFC) %>% plotCorToOne(., "sdDeg") 
+```
+
+## Study 2
+
+```{r}
+fullShort2 %>% select(sdDeg, CESD:NFC) %>% corToOne(., "sdDeg")
+fullShort2 %>% select(sdDeg, CESD:NFC) %>% plotCorToOne(., "sdDeg") 
+```
+
+## Study 3
+
+```{r}
+fullShort3 %>% select(sdDeg, CESD:NFC) %>% corToOne(., "sdDeg")
+fullShort3 %>% select(sdDeg, CESD:NFC) %>% plotCorToOne(., "sdDeg") 
+```
